@@ -3,6 +3,8 @@
 *.lo
 *.o
 *.obj
+*.pyc
+*.pyo
 
 # Compiled Dynamic libraries
 *.so

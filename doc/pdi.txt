@@ -1,0 +1,38 @@
+PDI  version 1.5 (201408)
+
+HPC/PF PDIサブシステム
+
+  コマンドライン
+   pdi.py [-h|--help] [-v] [--no_all] [-b] [-x case_dir]
+          [-d descfile] [-t templfile [-t templfile ...]] [-o out_pattern]
+          [-p param_name:param_value [-p param_name:param_value ...]]
+
+    -h, --help
+      ヘルプを表示して終了する。
+    -v
+      バージョン番号を表示して終了する。
+    --no_all
+      GUIモードにおいて「_All_」ページを作成しない。
+      ただし、パラメータ記述ファイル中に<group>タグが一つも存在しない場合は
+      作成する。
+    -b
+      バッチモードで動作する。
+    -x case_dir
+      ケースディレクトリを指定する。
+    -d descfile
+      パラメータ記述ファイルを指定する。
+    -t templfile
+      パラメータテンプレートファイルを指定する(複数指定可)。
+    -o out_pattern
+      出力先ディレクトリ・ファイル名のパターンを指定する。
+    -p param_name:param_value
+      パラメータ名・パラメータ値を直接指定する(複数指定可)。
+
+  環境変数
+    $HPCPF_HOME  HPC/PFインストールディレクトリ
+    $HPCPF_PREF_DIR  プリファレンスディレクトリ(省略時は $HOME/.hpcpf/)
+
+  参照ファイル
+    $HPCPF_PREF_DIR/PDI.conf  プリファレンスファイル
+    $HPCPF_HOME/conf/PDI_log.conf  ログ設定ファイル
+
