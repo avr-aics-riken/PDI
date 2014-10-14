@@ -6,6 +6,8 @@ HPC/PF PDIサブシステム
 """
 
 import sys, os
+import shutil
+import datetime
 from subprocess import check_call
 
 try:
@@ -121,17 +123,27 @@ def GetParamfileName(pfPattern, tmplBase, dn=0, scn=0, tn=0, cpdn=0):
     paramfile = paramfile.replace('#S', '_'+str(cpdn))
     return paramfile
 
-def CreateXcrScript(core, wdnl=[]):
+def CreateScriptFile(core, wdnl=[], path='paramsweep_wf', fmt='lua',
+                     interval=5):
     """
-    Xcrypt入力用ファイル生成
+    ワークフロー用スクリプトファイル生成
 
     [in] core  PDIコアデータ
     [in] wdnl  ディレクトリ名リスト
+    [in] path  スクリプトファイル名
+    [in] fmt   スクリプトファイル名拡張子
+    [in] interval   スクリプトファイル中のジョブ終了チェック間隔(sec)
     戻り値 -> 真偽値
     """
-    if not core:
-        log.error(LogMsg(210, 'create inserted_by_pdi.pl failed: invalid args'))
+    xpath = path
+    if len(fmt) > 1: xpath += '.' + fmt
+    if len(xpath) < 1:
+        log.error(LogMsg(210, 'create script file failed: invalid args'))
         return False
+    if not core:
+        log.error(LogMsg(210, 'create script file failed: invalid args'))
+        return False
+
     # get jobname
     wdname = core.wdPattern
     wdname = wdname.replace('#D', '')
@@ -165,73 +177,103 @@ def CreateXcrScript(core, wdnl=[]):
                 tmplBase = GetTemplBase(os.path.basename(core.templ_pathes[0]))
             comm_args = comm_args.replace('%T', tmplBase)
 
-    import datetime
+    commStr = comm
+    if comm_args != '':
+        commStr += ' ' + comm_args
+
     dt = str(datetime.datetime.today())
+    ts = '  '
 
-    pl_sub = True
-    try:
-        x = os.environ['HPCPF_PDI_XCR_SUB']
-        if x in ['0', 'no', 'No' 'NO', 'false', 'False', 'FALSE']:
-            pl_sub = False
-    except:
-        pass
+    tgzfile = job + '.tar.gz'
+    tarsrcs = ''
+    if wdnl == []:
+        numSubCase = 1
+        tarsrcs = job + '_0'
+    else:
+        numSubCase = len(wdnl)
+        tarsrcs = job + '_*'
 
-    path = 'inserted_by_pdi.pl'
     try:
-        ofp = open(path, "w")
-        ofp.write('# created by PDI: %s\n' % str(dt))
-        if pl_sub:
-            ofp.write('sub set_pdi_param {\n')
-            ofp.write("  my $tmpl = shift;\n")
-            ofp.write("  ${$tmpl}{id} = '%s';\n" % job)
-            if wdnl == []:
-                ofp.write("  ${$tmpl}{RANGE0} = [0];\n")
-            else:
-                ofp.write("  ${$tmpl}{RANGE0} = [")
-                for wdn in wdnl:
-                    wdnx = wdn.split('_', 1)
-                    if len(wdnx) < 2: continue
-                    if wdn != wdnl[0]: ofp.write(',')
-                    ofp.write("'%s'" % wdnx[1])
-                    continue # end of for(wdn)
-                ofp.write('];\n')
-            ofp.write("  ${$tmpl}{exe0} = './%s';\n" % comm)
-            ofp.write("  ${$tmpl}{linkedfile0} = './input_data/%s';\n" % comm)
-            if comm_args != '':
-                ofp.write("  ${$tmpl}{arg0_0} = '%s';\n" % comm_args)
-            ofp.write("  return 1;\n")
-            ofp.write('}\n')
-            ofp.write('1;\n')
+        ofp = open(xpath, "w")
+        ofp.write('-- created by PDI: %s\n' % str(dt))
+        ofp.write('require("hpcpf")\n')
+        ofp.write('require("xjob")\n')
+        ofp.write('\n')
+        ofp.write('local config = require("targetconf.lua")\n')
+
+        ofp.write('\n-- listup jobData\n')
+        ofp.write('numSubCase = %d\n' % numSubCase)
+        ofp.write('jobData = {}\n')
+        if wdnl == []:
+            ofp.write('jobData[1] = {targetpath = "%s_0", job = "%s"}\n' % \
+                          (job, commStr))
+            ofp.write('jobEnded[1] = false\n')
         else:
-            ofp.write("$template{'id'} = '%s';\n" % job)
-            if wdnl == []:
-                ofp.write("$template{'RANGE0'} = [0];\n")
-            else:
-                ofp.write("$template{'RANGE0'} = [")
-                for wdn in wdnl:
-                    wdnx = wdn.split('_', 1)
-                    if len(wdnx) < 2: continue
-                    if wdn != wdnl[0]: ofp.write(',')
-                    ofp.write("'%s'" % wdnx[1])
-                    continue # end of for(wdn)
-                ofp.write('];\n')
-            ofp.write("$template{'exe0'} = './%s';\n" % comm)
-            ofp.write("$template{'linkedfile0'} = './input_data/%s';\n" % comm)
-            if comm_args != '':
-                ofp.write("$template{'arg0_0'} = '%s';\n" % comm_args)
+            for case in range(numSubCase):
+                ofp.write('jobData[%d] = {targetpath = "%s", job = "%s"}\n' % \
+                              (case+1, wdnl[case], commStr))
+                ofp.write('jobEnded[%d] = false\n' % (case+1))
+                continue # end of for(case)
+
+        ofp.write('\n-- prepare tgz-file and send to the remote\n')
+        ofp.write('compressFile("%s", "%s")\n' % (tarsrcs, tgzfile))
+        ofp.write('io.write("uploading subcases: %s ... ")\n' % tgzfile)
+        ofp.write('uploadFile(config, "%s")\n' % tgzfile)
+        ofp.write('io.write("done, extracting ... ")\n')
+        ofp.write('remoteExtractFile(config, "%s", true)\n' % tgzfile)
+        ofp.write('deleteFile("%s")\n' % tgzfile)
+        ofp.write('print("done.")\n')
+
+        ofp.write('\n-- submit jobs on the remote\n')
+        ofp.write('for case = 1, numSubCase do\n')
+        ofp.write(ts + 'remoteJobSubmit(config, jobData[case])\n')
+        ofp.write(ts + 'print("subcase job " .. tostring(case) .. '
+                  + '"[" .. jobData[case].targetpath .. "/" .. '
+                  + 'jobData[case].job .. "] submitted.")\n')
+        ofp.write('end\n')
+
+        ofp.write('\n-- check status of the jobs on the remote\n')
+        ofp.write('while 1 do\n')
+        ofp.write(ts + 'local jstat = true\n')
+        ofp.write(ts + 'for case = 1, numSubCase do\n')
+        ofp.write(ts*2 + 'if not jobEnded[case] then\n')
+        ofp.write(ts*3 + 'jobEnded[case] = '
+                  + '(remoteJobStat(config, jobData[case]) == "END")\n')
+        ofp.write(ts*3 + 'if jobEnded[case] then\n')
+        ofp.write(ts*4 + 'print("subcase job " .. tostring(case) .. "end.")\n')
+        ofp.write(ts*3 + 'end\n')
+        ofp.write(ts*3 + 'jstat = jstat and jobEnded[case]\n')
+        ofp.write(ts + 'end\n')
+        ofp.write(ts + 'if ( jstat ) then break end\n')
+        if interval > 0:
+            ofp.write(ts + 'sleep(%d)\n' % interval)
+        ofp.write('end\n')
+        ofp.write('print("all subcase jobs finished.")\n')
+
+        ofp.write('\n-- recovery results from the remote\n')
+        ofp.write('remoteCompressFile("%s", "%s")\n' % (tarsrcs, tgzfile))
+        ofp.write('io.write("downloading result of subcases: %s ... ")\n' % \
+                      tgzfile)
+        ofp.write('downloadFile(config, "%s")\n' % tgzfile)
+        ofp.write('io.write("done, extracting ... ")\n')
+        ofp.write('os.execute("tar xvfz %s")\n' % tgzfile)
+        ofp.write('deleteFile("%s")\n' % tgzfile)
+        ofp.write('print("done.")\n')
+
         ofp.close()
+        os.chmod(xpath, 0744)
     except Exception, e:
-        log.error(LogMsg(210, 'create inserted_by_pdi.pl failed.'))
+        log.error(LogMsg(210, 'create %s failed.' % xpath))
         log.error(str(e))
         return False
+
     # register to CIF via PJM
     pjm_comm = ['pjm_set_file_in_case', '..', os.path.basename(os.getcwd()),
-                'xcrypt_file', 'inserted_by_pdi', 'inserted_by_pdi.pl',]
+                'script_file', path, xpath,]
     try:
         pass ## check_call(pjm_comm)
     except Exception, e:
-        log.error(LogMsg(220, 'add inserted_by_pdi.pl to CIF failed:'
-                         ' call PJM failed'))
+        log.error(LogMsg(220, 'add %s to CIF failed: call PJM failed' % xpath))
         log.error(str(e))
 
     # export generator/suspender path
@@ -340,6 +382,11 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
             raise
 
     exec_dir = os.path.basename(core.exec_dir)
+    try:
+        in_dat_files = os.listdir('input_data')
+    except:
+        in_dat_files = []
+
     (keepGoing, skip) = (True, False)
 
     if spl == []: # subcase number is 1, not sweep
@@ -368,12 +415,20 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
                 log.error(LogMsg(62, 'template conversion failed, '
                                  'template=%s, target=%s' % (tf, paramPath)))
             continue # end of for(tf)
+        # copy input_data/* into wdname/
+        for idfn in in_dat_files:
+            srcname = os.path.join(os.path.join('input_data', idfn))
+            dstname = os.path.join(os.path.join(wdname, idfn))
+            if os.path.isdir(srcname):
+                shutil.copytree(srcname, dstname)
+            else:
+                shutil.copy2(srcname, dstname)
         if progress:
             (keepGoing, skip) = \
                 progress.Update(1, 'creating %s/... done.' % \
                                     os.path.join(exec_dir, wdname))
-        # create xcr script
-        CreateXcrScript(core)
+        # create script file in Lua
+        CreateScriptFile(core)
 
         # add param files to CIF
         AddParamsToCIF(core)
@@ -409,7 +464,7 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
     wdnl = []
     dn = 0
     scn = 0
-    #for sc in sweepArr:
+    # for sc in sweepArr:
     while scn < len(sweepArr):
         sc = sweepArr[scn]
         # create directory
@@ -451,6 +506,15 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
                 tn += 1
                 continue # end of for(tf)
 
+            # copy input_data/* into wdname/
+            for idfn in in_dat_files:
+                srcname = os.path.join(os.path.join('input_data', idfn))
+                dstname = os.path.join(os.path.join(wdname, idfn))
+                if os.path.isdir(srcname):
+                    shutil.copytree(srcname, dstname)
+                else:
+                    shutil.copy2(srcname, dstname)
+
             # output param_list.csv
             if plf:
                 if core.sfPattern == '':
@@ -478,8 +542,8 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
 
     if plf: plf.close()
 
-    # create xcr script
-    CreateXcrScript(core, wdnl)
+    # create script file in Lua
+    CreateScriptFile(core, wdnl)
 
     # add param files to CIF
     AddParamsToCIF(core)

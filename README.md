@@ -4,6 +4,8 @@ PDI
 Parameter Design and Input Method for HPC/PF system.
 
 ----
+# Version
+  1.3 (201410)
 
 # Requires
   python 2.x (not python 3.x !)
@@ -15,7 +17,7 @@ Parameter Design and Input Method for HPC/PF system.
 # Run
   - Linux / MacOSX
     $ PDI/bin/pdi
-  - MacOSX with wxPython 2.8 (wxCarbon)
+  - MacOSX with wxPython 2.8(wxCarbon) or 3.0(wxMac)
     $ PDI/bin/pdi32
   - Windows
     $ PDI/bin/pdi.bat
