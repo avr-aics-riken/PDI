@@ -1,0 +1,1323 @@
+\documentclass[a4paper,11pt]{jarticle}
+%\documentclass[twoside]{jbook}
+%\documentclass[twoside]{jreport}
+
+\usepackage[dvipdfmx]{hyperref}
+
+% Page & text layout
+\usepackage{geometry}
+\geometry{%
+  a4paper,%
+  top=2.5cm,%
+  bottom=2.5cm,%
+  left=2.5cm,%
+  right=2.5cm%
+}
+\tolerance=750
+\hfuzz=15pt
+\hbadness=750
+\setlength{\emergencystretch}{15pt}
+\setlength{\parindent}{0cm}
+\setlength{\parskip}{0.2cm}
+\makeatletter
+
+\renewcommand{\paragraph}{%
+  \@startsection{paragraph}{4}{0ex}{-1.0ex}{1.0ex}{%
+    \normalfont\normalsize\bfseries\SS@parafont%
+  }%
+}
+\renewcommand{\subparagraph}{%
+  \@startsection{subparagraph}{5}{0ex}{-1.0ex}{1.0ex}{%
+    \normalfont\normalsize\bfseries\SS@subparafont%
+  }%
+}
+\makeatother
+
+\usepackage{fancyhdr}
+\pagestyle{fancyplain}
+\fancyhead[LE]{\fancyplain{}{\bfseries\thepage}}
+\fancyhead[CE]{\fancyplain{}{}}
+\fancyhead[RE]{\fancyplain{}{\bfseries\leftmark}}
+\fancyhead[LO]{\fancyplain{}{\bfseries\rightmark}}
+\fancyhead[CO]{\fancyplain{}{}}
+\fancyhead[RO]{\fancyplain{}{\bfseries\thepage}}
+\fancyfoot[LE]{\fancyplain{}{}}
+\fancyfoot[CE]{\fancyplain{}{}}
+\fancyfoot[RE]{\fancyplain{}{\bfseries\scriptsize}}
+\fancyfoot[LO]{\fancyplain{}{\bfseries\scriptsize}}
+\fancyfoot[CO]{\fancyplain{}{}}
+\fancyfoot[RO]{\fancyplain{}{}}
+
+\usepackage{graphicx}
+
+
+\begin{document}
+
+\begin{titlepage}
+\vspace*{7cm}
+\begin{center}%
+{\LARGE \bf 次世代ものつくりプラットフォーム(HPC/PF)\\
+
+PDI(パラメータ空間設計・入力支援)サブシステム\\
+
+操作説明書\\}
+\vspace*{2.5cm}
+\bf Version 1.3.1\\
+\vspace*{3.5cm}
+%{\large\bf (株)富士通システムズ・イースト\\}
+\vspace*{1cm}
+%{\large\bf 解析シミュレーション部\\}
+\vspace*{2cm}
+\bf 2014年10月\\
+\end{center}
+\end{titlepage}
+
+
+\newpage
+
+{\Large\bf 改版履歴}
+
+\vspace{12pt}
+\begin{tabular}{|l|l|l|} \hline
+リリース & 版数 & 備考\hspace*{11cm}\\ \hline
+2013/02 & 1.0 & 初版\\ \hline
+2013/06 & 1.1 & 「{\tt $--$no\_all}」オプションの追加\\
+ & & {\tt <cond>ノードの比較演算子の変更}\\ \hline
+2014/03 & 1.2 & templateファイル記述方式変更\\
+ & & {\tt 対応ソルバの追加}\\ \hline
+2014/10 & 1.3 & ワークフローのLua化に対応\\ \hline
+2014/10 & 1.3.1 & スナップショットファイル名を{\tt .pdi\_params}から{\tt snap\_params.pdi}に変更\\ \hline
+\end{tabular}
+
+\newpage
+\tableofcontents
+
+
+\newpage
+\section*{はじめに}
+
+本書は、HPC/PF システムの PDI サブシステムについての操作説明書です。
+
+
+HPC/PFシステムは、数値解析シミュレータとその周辺処理ツール群であり、HPC/PFシステムを構成するサブシステムの１つであるPDIは、ユーザのパラメータ空間設計およびパラメータ入力を支援します。
+
+
+本書では、PDIのインストール方法および操作方法について説明します。
+
+\newpage
+\section{インストール}
+
+\vspace{12pt}
+PDIのインストール方法について説明します。
+
+\subsection{動作環境}
+
+想定される動作環境を以下に示します。
+
+表2-1 PDI動作環境
+
+\begin{tabular}{|l|l|}
+\hline
+アーキテクチャ & AMD64, IA32\\ \hline
+OS & Linux 2.6/3.x\\
+   & MacOS 10.8/10.9\\
+   & Windows 7/8\\ \hline
+ソフトウエア & Python 2.x\\
+             & wxPython 2.7以降/3.0\\ \hline
+\end{tabular}
+
+\subsection{必須ソフトウエアのインストール}
+
+\subsubsection{Pythonのインストール}
+
+\textbf{(1) Linux}
+
+多くのLinuxディストリビューションでは、Pythonの実行環境はOSに含まれています。ログイン後にターミナルで「{\tt which python}」と入力し、Pythonの実行パスが表示されれば、そのシステムでPythonは使用可能です。
+
+Pythonがインストールされていない場合、各Linuxのディストリビューション管理システムを使用してPythonをインストールすることが可能です。以下に例を示します。
+
+\begin{description}
+\item[RedHat/CentOS系] {\ } \\
+{\tt sudo yum install python} \\
+\item[Debian/Ubuntu系] {\ } \\
+{\tt sudo apt-get install python}\\
+\end{description}
+{\ }\\
+
+
+\textbf{(2) MacOS}
+
+MacOS環境向けには、Pythonのインストーラパッケージが用意されています。
+
+以下に示すURLより、PDIを動作させる環境にあったインストーラをダウンロードし、実行することでインストールをおこなってください。
+\begin{quote}
+{\tt http://www.python.org/download/}
+\end{quote}
+尚、同URLにはPython 3.xのインストーラパッケージも登録されていますが、PDIはPython
+3.xでの動作は保証していません。Python 2.xのインストーラパッケージを使用してください。
+{\ }\\
+
+
+\textbf{(3) Windows}
+
+Windows環境向けには、Python 2.7.xのインストーラパッケージが用意されています。
+
+以下に示すURLより、PDIを動作させる環境にあったインストーラをダウンロードし、実行することでインストールをおこなってください。
+\begin{quote}
+{\tt http://www.python.org/download/}
+\end{quote}
+尚、同URLにはPython 3.xのインストーラパッケージも登録されていますが、PDIはPython
+3.xでの動作は保証していません。Python 2.xのインストーラパッケージを使用してください。
+
+インストーラ実行時に、「Customize Python 2.7.x」という画面が表示され、ここでインストールするPythonの構成を選択する事が出来ます。
+
+\begin{center}
+\includegraphics[width=250pt, bb=0 0 499 425]{figs/fig000.png}
+
+図1-1 Python Windowsインストーラ画面
+\end{center}
+
+ここで、デフォルトでは「Add python.exe to Path」という項目が「×」(インストールしない)になっているので、これを「Will be installed on local hard drive」に変更した上でインストールを進めてください。
+{\ }\\
+
+
+\subsubsection{wxPythonのインストール}
+
+\textbf{(1) Linux}
+
+多くのLinuxディストリビューションでは、ディストリビューション管理システムを使用してwxPythonをインストールすることが可能です。以下に例を示します。
+
+\begin{description}
+\item[RedHat/CentOS系] {\ }\\
+{\tt sudo yum install wxPython}\\
+\item[Debian/Ubuntu系] {\ }\\
+{\tt sudo apt-get install python-wxgtk2.8}
+\end{description}
+{\ }\\
+
+
+\textbf{(2) MacOS}
+
+MacOS環境向けには、wxPythonのインストーラパッケージが用意されています。
+以下に示すURLより、PDIを動作させる環境にあったインストーラをダウンロードし、実行することでインストールをおこなってください。
+\begin{quote}
+{\tt http://www.wxpython.org/download.php\#stable}
+\end{quote}
+{\ }\\
+
+
+\textbf{(3) Windows}
+
+Windows環境向けには、wxPythonのインストーラパッケージが用意されています。
+以下に示すURLより、PDIを動作させる環境にあったインストーラをダウンロードし、実行することでインストールをおこなってください。
+\begin{quote}
+{\tt http://www.wxpython.org/download.php\#stable}
+\end{quote}
+{\ }\\
+
+
+
+\subsection{PDIのインストール}
+
+PDIのパッケージは、システムの任意の場所に置くことができます。
+
+PDIのディストリビューションに含まれる{\tt pdi\_{\it version}.tar.gz}または{\tt pdi\_{\it version}.zip}ファイル({\tt\it version}は実際の文字列に置き換えてください)を任意のディレクトリに展開します。
+
+{\tt tar.gz}の場合は、tarコマンドで以下のように実行します。
+
+\begin{quote}
+{\tt tar xvfz  pdi\_\textit{version}.tar.gz}
+\end{quote}
+
+
+展開を実行すると、以下に示すようなディレクトリ階層が作成されます。
+
+\begin{quote}
+\begin{verbatim}
+pdi
+├── bin
+│   ├── pdi
+│   └── pdi.bat
+├── doc
+│   ├── pdi_ug.pdf
+│   └── pdi.txt
+├── lib
+│   └── python
+└── conf
+     ├── PDI.conf
+     └── PDI_log.conf
+\end{verbatim}
+\end{quote}
+
+PDIの実行コマンドは、{\tt pdi/bin/pdi}(Linux, MacOS)または{\tt pdi/bin/pdi.bat}(Windows)です。
+
+\newpage
+\section{操作方法}
+
+PDIの操作方法について説明します。
+
+\subsection{プログラムの起動}
+
+PDIの実行コマンドファイルは、以下のパスに存在します。
+
+\begin{quote}
+{\tt (PDIインストールディレクトリ)/pdi/bin/pdi(.bat)}
+\end{quote}
+
+PDIを起動する際の、コマンドライン指定の形式を以下に示します。。
+
+\begin{description}
+\item[GUIモード] {\ }
+\begin{verbatim}
+pdi  [-x case_directory] [-d param_desc] [-o output_pattern]
+     [-t template_file -t template_file ...] [--no_all]
+     [-p param_name:param_value  -p param_name:param_value ...]
+\end{verbatim}
+
+\item[バッチモード] {\ }
+\begin{verbatim}
+pdi -b [-x case_directory] [-d param_desc] [-o output_pattern]
+       [-t template_file -t template_file ...]
+       [-p param_name:param_value -p  param_name:param_value ...]
+\end{verbatim}
+
+\item[引数説明] {\ }
+\begin{description}
+\item[{\tt -b}] {\ }\\
+バッチモード実行。
+指定された場合、GUIウインドウを表示せず、バッチモードで実行します。
+\item[{\tt -x  case\_directory}] {\ }\\
+ケースディレクトリ指定。
+指定されると、PDIは起動時にcase\_directoryにカレントワーキングディレクトリを移動します。指定が省略された場合は、起動ディレクトリとなります。
+
+\item[{\tt -d  param\_desc}] {\ }\\
+パラメータ記述XMLファイルの指定。
+パラメータ記述XMLファイルのパスを指定します。絶対パスか、カレントワーキングディレクトリからの相対パスで指定します。
+
+\item[{\tt $--$no\_all}] {\ }\\ 
+GUIモードにおいて「\_All\_」ページを作成しません。
+ただし、パラメータ記述ファイル中に{\tt ＜group＞}タグが一つも存在しない場合は
+作成します。
+
+\item[{\tt -t  template\_file}] {\ }\\
+ソルバ入力パラメータテンプレートファイルの指定。
+入力パラメータテンプレートファイルのパスを指定します。絶対パスか、カレントワーキングディレクトリからの相対パスで指定します。複数指定が可能です。
+
+\item[{\tt -o  output\_pattern}] {\ }\\
+出力先ディレクトリ・ファイル名のパターン指定。
+サブケース毎に生成する作業ディレクトリ及び作業ディレクトリ配下の入力パラメータファイルのパターンを指定します。パターンは、以下に示す形式で指定します。
+\begin{quote}
+{\tt directoryname/filename}
+\end{quote}
+作業ディレクトリ名と配下のファイル名は「/」で区切られます。パターン中に「/」が現れない場合、すべてfilenameと解釈され、カレントワーキングディレクトリ直下にfilenameのパターンで入力パラメータファイルが作成されます。
+
+directorynameが指定された場合、カレントワーキングディレクトリ配下に作業ディレクトリとしてdirectorynameが作成され、その配下にfilenameが作成されます。
+
+directoryname中に「\%P」が含まれている場合、この部分はスイープされるパラメータ値の組み合わせ文字列に置き換えられます。また、「\%Q」がが含まれている場合、この部分はスイープされるパラメータ名+パラメータ値の組み合わせ文字列に置き換えられます。
+\begin{quote}
+\begin{verbatim}
+(例)
+ptest%P/PARAMS　⇒　ptest_100_10/PARAMS
+ptest%Q/PARAMS　⇒　ptest_Re100_CX10/PARAMS
+\end{verbatim}
+\end{quote}
+
+パラメータスイープが行われない場合は、「\%P」「\%Q」は空文字列に置き換えられます。
+\begin{quote}
+{\tt (例) ptest\%P/PARAMS　⇒　ptest/PARAMS}
+\end{quote}
+
+filename中に「\%T」が含まれている場合、この部分はtemplate\_fileのベース名に置き換えられます。また、filename中に「\#T」が含まれている場合、この部分はtemplate\_fileの番号に置き換えられます(template\_fileが１個だけ指定されている場合は「\_0」)。
+
+filename中に「\#S」が含まれている場合、この部分は単一ディレクトリ内のサブケース番号(1ディレクトリにつき1サブケースの場合は、常に０)に置き換えられます。
+
+directorynameおよびfilename中に「\#D」、「\#J」が含まれている場合、この部分はそれぞれディレクトリ通番、サブケース通番に置き換えられます。
+\begin{quote}
+{\tt (例) ptest\#D/PARAMS\#J　⇒　ptest\_0/PARAMS\_0}
+\end{quote}
+
+\item[{\tt -p param\_name:param\_value}] {\ }\\
+パラメータ値の直接指定。
+パラメータ名とパラメータ値のペアを、コマンドラインから直接指定します。複数指定が可能です。パラメータ名とパラメータ値は「:」で区切って記述します。
+
+パラメータ値は、以下のいずれかの形式で指定を行います。
+\begin{itemize}
+\item 直接指定
+\item 範囲、刻み幅指定：　最小値/最大値/刻み幅\\
+最小値、最大値、刻み幅を「/」で区切って記述。空白を入れてはならない。
+\item 列挙：　値1,値2,...\\
+列挙する値を「,」で区切って記述。空白を入れてはならない。
+\end{itemize}
+
+尚、直接指定または列挙で文字列値を指定する場合、空白または区切り文字が含まれる場合は「{\tt "}」で囲って指定します。
+
+\end{description}
+\end{description}
+
+PDIをGUIモードで実行すると、PDIのメインウインドウが表示されます。
+
+\begin{center}
+\includegraphics[width=360pt, bb=0 0 982 512]{figs/fig001.png}
+
+図3-1 PDIメインウインドウ
+\end{center}
+
+
+尚、PDIの終了は、メインウインドウのFileメニューからQuitを選択するか、メインウインドウを閉じることで行えます(MacOSの場合、Quitはメニューバーの「Python」メニューの「{\tt Quit Python}」です)。
+
+
+\subsection{パラメータ空間設計支援機能}
+
+PDIのパラメータ空間設計支援は、パラメータ定義ファイルの記述に基づいて行われます。
+
+パラメータ定義ファイルは、PDIで設定可能なソルバのパラメータの名前、型、値域、デフォルト値、所属グループなどを記述したXML形式のファイルで、PDIの起動時に「-d」オプションで指定する他、GUIモードの場合は「File」メニューの「{\tt load parameter description file}」からファイルを指定し、ロードさせることができます。
+
+
+パラメータ定義ファイルがロードされると、GUIモードの場合パラメータ定義ファイル中に記述された各パラメータ項目は、所属するグループごとにタブページにまとめられ、リスト形式で表示されます。所属グループ属性のないパラメータ項目を含めすべてのパラメータ項目は、「ALL」のタブページにまとめられます。
+
+
+各パラメータ項目は、パラメータの型に応じてパラメータ値および範囲と刻み幅の入力欄のGUI部品が配置されます。
+
+\begin{description}
+\item[{\bf name}] パラメータ名\\
+パラメータ定義ファイル中にパラメータの説明が記述されている場合、マウスカーソルをパラメータ名の上に移動するとパラメータの説明がツールチップとして表示されます。また、パラメータ名をマウス左ボタンでダブルクリックすると、そのパラメータ設定の有効／無効が切り替わります。無効の場合はソルバ入力ファイル生成時にそのパラメータの設定は無視され、テンプレートファイルに設定されたデフォルト値が使用されます。パラメータ設定が有効で、かつそのパラメータ空間が縮退している(有効なパラメータ設定値が無い)場合は、パラメータ名は赤色で表示されます。
+
+\item[{\bf type}] パラメータ型\\
+パラメータ定義ファイル中に記述されたパラメータの型が表示されます。
+\begin{itemize}
+\item int 整数
+\item real 実数
+\item choice 候補選択
+\item string 文字列
+\item bool 真偽値
+\end{itemize}
+
+\item[{\bf limitation}] 値域\\
+パラメータ値が取りうる値の最小／最大値を設定します。制限なしにする場合には、noneまたはunlimitedと入力します。typeがintまたはrealの場合のみ設定可能です。
+
+\item[{\bf value(s)}] パラメータ値(単一または列挙)\\
+このラジオボタンがONの場合には、パラメータ値は直接指定します。typeがintまたはrealの場合は、空白で区切って複数の値を列挙指定することができます。
+
+\item[{\bf sweep range}] パラメータスイープ範囲\\
+このラジオボタンがONの場合には、パラメータ値は範囲と刻み幅で指定します。typeがboolの場合は、パラメータ値はTrueとFalseの両方でスイープします。typeがchoiceの場合は、全選択肢がパラメータスイープの対象になります。typeがstringのパラメータは、パラメータスイープの対象にはなりません。
+
+\item[{\bf exceptional value(s)}] 除外値(範囲または列挙値)\\
+このチェックボックスがONの場合、パラメータスイープの除外値を設定することができます。rangeラジオボタンがONの場合は、テキストボックスに除外する範囲の最小値と最大値を「/」(スラッシュ)で区切って指定します。valuesラジオボタンがONの場合は、テキストボックスに除外する値を直接指定します。複数の値を除外する場合は、空白で区切って列挙指定することもできます。
+
+尚、除外値の設定を行うことができるのは、typeがintまたはrealのパラメータ項目のみです。
+\end{description}
+
+\begin{description}
+\item[設定の例] \begin{tt}{\ }\\
+　limitation -0.3 / 0.7 (-0.3から0.7までの値が有効)
+
+　sweep range -0.5 / 0.5 / 0.1 (-0.5から0.5まで0.1刻みでパラメータスイープ)
+
+　exceptional values 0.0 0.1 (0.0と0.1はパラメータスイープから除外)
+
+パラメータスイープされる値： -0.3, -0.2, -0.1,   0.2,  0.3,  0.4,  0.5\\
+　(-0.4, -0.5はlimitationから外れるので無効、0.0と0.1は除外)
+\end{tt}
+
+\item[パラメータ間の依存関係]{\ }\\
+パラメータ定義ファイル中に、パラメータ間の依存関係(\texttt{<}depend\texttt{>}タグ)の記述がある場合は、依存先パラメータの値に応じてパラメータ項目欄の状態の変更（有効/無効、値設定、値域設定）が行われます。
+
+ただし、この状態変更は依存先のパラメータ値が変更された際に行われるので、その後パラメータ欄の操作を行うことでパラメータの状態を再変更することが可能です。
+
+上記の設定において、複数のパラメータ値をとるように設定されたパラメータ項目が1個でも存在する場合はパラメータスイープの対象となります。パラメータスイープの総件数は、すべてのパラメータ項目のパラメータ値の件数を掛け合わせた数になります。
+\end{description}
+
+
+\subsection{パラメータサーベイ方式設定機能}
+
+GUIモードで起動されたPDIの「Survey」タブを選択すると、下図に示すパネルが表示され、ここでパラメータサーベイの方式を設定することができます。
+
+\begin{center}
+\includegraphics[width=360pt, bb=0 0 982 385]{figs/fig002.png}
+
+図3-2 PDIのSurveyパネル
+\end{center}
+
+
+全てのパラメータケース(サブケース)を組み合わせた数(全探査数)が「{\tt Total subcase number}」に表示されます。この数が0の場合は、パラメータ空間が縮退していることを意味し、ソルバ入力用のパラメータファイル生成を行うことはできません。
+
+全探査数に対して、幾つの作業ディレクトリを作成するかを「{\tt subcase directory number}」に、または1つの作業ディレクトリにつき幾つのパラメータケースを割り当てるかを「{\tt subcases per directory}」に入力します。どちらか一方が入力されると、もう一方は自動的に更新されます。初期値は、1つの作業ディレクトリにつき１つのパラメータケース(作業ディレクトリ数=全探査数)です。(作業ディレクトリ数)×(作業ディレクトリ当りのパラメータケース数)≠(全探査数)の場合は、最後の作業ディレクトリに割り当てられるパラメータケース数で調整されます。
+
+作業ディレクトリ名({\tt subcase directory pattern})、ソルバ入力用パラメータファイル名({\tt parameter file pattern})、およびスコアファイル名({\tt score file pattern})については、以下に示すキーワードを使用してパターンを設定します。
+
+\begin{description}
+\item[\%P] パラメータ組み合わせ
+\item[\%Q] パラメータ組み合わせ(パラメータ名付き)
+\item[\%T] テンプレートファイルのベース名\\
+(テンプレートファイル名から末尾の\texttt{"}.template\texttt{"}, 
+\texttt{"}.tmpl\texttt{"}, \texttt{"}.tmp\texttt{"}, \texttt{"}.tpl\texttt{"}を 除いたもの)
+\item[\#D] 作業ディレクトリ通番
+\item[\#J] サブケース通番
+\item[\#T] ソルバ入力パラメータファイルが複数ある場合のファイル番号
+\end{description}
+
+尚、全探査数が1の場合は、作業ディレクトリ名中の上記パターンは全て空文字列に置き換えられ、末尾に「{\tt \_0}」が追加されます。
+
+ジョブの刈り込みを行う場合、「{\tt enable job suspender}」のチェックをONにします。この場合、「{\tt job suspender}」にジョブの刈り込みを行うユーザプログラムのパスを設定します。
+
+繰り返し型のパラメータサーベイを行う場合、「{\tt generation loop}」のチェックをONにします。この場合、「{\tt max generation}」に最大世代(ループ)数を、「{\tt generator}」に繰り返しチェックと次世代のパラメータ空間を生成するユーザプログラムのパスを設定します。
+
+尚、ジョブの刈り込みまたは繰り返し型のパラメータサーベイを行う場合、ソルバが生成するスコアファイル名のパターンが「{\tt score file pattern}」に設定されていなければなりません。空白の場合はデフォルトで「{\tt SCORE}」というァイル名パターンが指定されたとみなされます。
+
+
+\subsection{ソルバ入力用パラメータファイルの生成機能}
+
+PDIによるソルバ入力用パラメータファイルの生成を行うには、パラメータ空間設定(3.2章)とパラメータサーベイ方式設定(3.3章)に加えて、ソルバ入力パラメータテンプレートファイルの指定と、ソルバ種別の指定が必要です。
+
+\subsubsection{ソルバ入力パラメータテンプレートファイルの指定}
+
+ソルバ入力パラメータテンプレートファイルは、PDIの起動時に「{\tt -t}」オプションで指定することができます。「{\tt -t template\_file}」という形式で、複数指定することが可能です。
+
+PDIをGUIモードで起動した場合、「Edit」メニューの「{\tt set parameter template file(s)}」から、ソルバ入力用パラメータテンプレートファイルの追加／削除を行うことができます。
+
+このメニューを選択すると、下図に示すダイアログウインドウが表示されます。
+
+\begin{center}
+\includegraphics[width=184pt, bb=0 0 327 296]{figs/fig003.png}
+
+図3-3 PDIのテンプレートファイル設定ダイアログ
+\end{center}
+
+このダイアログウインドウには、既に登録済みのソルバ入力用パラメータテンプレートファイルがリスト表示されています。このダイアログは「{Close」ボタンをクリックすると閉じられます。
+
+「Add」ボタンをクリックすると、ファイル選択ダイアログが表示され、ここで選択したファイルがソルバ入力用パラメータテンプレートファイルととして追加されます。
+
+リスト上で登録済みのソルバ入力用パラメータテンプレートファイルを選択状態にし、「Delete」ボタンをクリックすると、そのファイルの登録は解除されます。
+
+
+\subsubsection{ソルバ種別の設定}
+
+PDIでは、ソルバ入力用パラメータファイルの生成時に、パラメータスイープ実行のための設定ファイルを生成します。この設定ファイル中には、ソルバ実行の方法の記述も含まれるため、PDI上でソルバ種別の設定を行なっておく必要があります。
+
+GUIモードで起動したPDIの「Edit」メニューから「{\tt select solver type}」を選択すると、下図に示すダイアログウインドウが表示されます。
+
+\begin{center}
+\includegraphics[width=176pt, bb=0 0 312 296]{figs/fig004.png}
+
+図3-4 PDIのソルバ種別選択ダイアログ
+\end{center}
+
+ここには、PDIに予め登録されているソルバ種別の一覧がリスト表示され、リスト中の項目を選択状態にして「OK」ボタンをクリックすると、ソルバ種別の設定がおこなわれます。
+
+現在、PDIに登録されているソルバ種別の設定を以下に示します。
+
+\begin{tt}
+\begin{tabular}{|l|l|l|}
+\hline
+ソルバ種別 & ソルバ実行コマンド & ソルバ入力パラメータファイル名パターン\tabularnewline
+\hline
+FFB\_LES3C & run\_les3c.sh & PARMLES3C\tabularnewline
+\hline
+FFB\_LES3C\_MPI & run\_les3c\_mpi.sh & PARMLES3C\tabularnewline
+\hline
+FFB\_LES3X & run\_les3x.sh & PARMLES3X\tabularnewline
+\hline
+FFB\_LES3X\_MPI & run\_les3x\_mpi.sh & PARMLES3X\tabularnewline
+\hline
+FFV & run\_ffv.sh \%T & \%T \tabularnewline
+\hline
+OpenFoam\_icoFoam & run\_openfoam.sh &  \tabularnewline
+\hline
+その他(none) & run.sh & 変更せず\tabularnewline
+\hline
+\end{tabular}
+\end{tt}
+
+上記の表中の「{\tt \%T}」は テンプレートファイルのベース名(3.3章参照)を表します。
+
+また、パラメータスイープ実行のための設定ファイルにおいては、上記の表の「ソルバ実行コマンド」に示された実行ファイル(シェルスクリプト)がケースディレクトリ配下に存在することを前提としています。
+
+
+\subsubsection{サブケースディレクトリとソルバ入力パラメータファイルの生成}
+
+GUIモードで起動されたPDIでは、「File」メニューの「{\tt generate solver parameter file(s)}」を選択すると、パラメータスイープ用の作業ディレクトリ(サブケースディレクトリ)と、ソルバ入力用パラメータファイルの生成が行われます。
+
+具体的には、以下に示す処理が行われます。\\
+
+\textbf{(1) サブケースディレクトリの作成}
+
+ケースディレクトリ配下に、作業ディレクトリ名パターンを展開したディレクトリが「{\tt subcase directory number}」個作成されます。作成しようとしているディレクトリが既に存在する場合は、そのディレクトリはそのまま流用されます。\\
+
+\textbf{(2) ソルバ入力用パラメータファイルの作成}
+
+作成したサブケースディレクトリの配下に、ソルバ入力用パラメータファイル名パターンを展開したファイル名で、ソルバ入力用パラメータファイルが作成されます。PDIは、指定されているソルバ入力パラメータテンプレートファイル中のマクロ記述をパラメータ値に置換することで、ソルバ入力用パラメータファイルを生成します。複数のンプレートファイルが指定されている場合、それらすべてに対応するソルバ入力用パラメータファイルが作成されます。
+
+作成しようとしているソルバ入力用パラメータファイルが既に存在する場合は、そのファイルは上書きされます。\\
+
+\textbf{(3) ワークフロー実行用パラメータ設定ファイルの作成}
+
+実際のソルバ実行を含むパラメータスイープ／パラメータサーベイの実行は、ケースワークフローからLuaスクリプトとして実行されます。
+
+PDIは、ソルバ入力用パラメータファイルの生成時に、Luaスクリプトファイルとして、ケースディレクトリ配下に{\tt paramsweep\_wf.lua}というファイルを作成します。同名のファイルが既に存在する場合、そのファイルは上書きされます。\\
+
+\textbf{(4) パラメータリストファイルの作成}
+
+パラメータリストファイルは、現在のパラメータ空間設定の下で実行されるパラメータスイープのパラメータ値およびスコアファイルのパスを記述したCSV形式のテキストファイルです。
+
+PDIは、ソルバ入力用パラメータファイルの生成時に、パラメータリストファイルをケースディレクトリ配下に {\tt param\_list.csv}というファイル名で作成します。同名のファイルが既に存在する場合、そのファイルは上書きされます。\\
+
+\textbf{(5) generator、job suspenderプログラムパスのエクスポート}
+
+「{\tt enable job suspender}」および「{\tt generation loop}」がONの場合、「{\tt job suspender}」および「{\tt generator}」に設定されたプログラムの実行パスを、以下に示すファイルに出力します。
+
+\begin{quote}
+\begin{description}
+\item[{\tt job suspender：}] {\ }\\
+{\tt ケースディレクトリ/job\_suspender\_prog}
+\item[{\tt generator：}] {\ }\\
+{\tt ケースディレクトリ/generator\_prog}
+\end{description}
+\end{quote}
+
+尚、「{\tt enable job suspender}」および「{\tt generation loop}」がOFFの場合は、上記ファイルが存在していれば、ファイルを削除します。
+
+
+\subsection{パラメータ空間設定情報の保存}
+
+PDIは終了時に、その時点でのパラメータ空間設定情報とパラメータサーベイ方式設定情報を、ケースディレクトリ配下に {\tt snap\_params.pdi}というファイル名で保存します。既にこのファイルが存在する場合、ファイルは上書きされます。
+
+{\tt snap\_params.pdi}ファイルが存在するディレクトリがケースディレクトリとして指定({\tt -x})された場合、パラメータ記述ファイルの指定({\tt -d})がなくてもPDIはパラメータ空間設計を行うことが可能です(この場合、ログにはワーニングが出力されます)。また、パラメータ記述ファイルの指定が行われた場合は、パラメータ記述ファイルのロード後に {\tt snap\_params.pdi}ファイルに保存された情報の反映を行います。
+
+ただし、指定されたパラメータ記述ファイルと、{\tt snap\_params.pdi}ファイルに保存されているパラメータ記述ファイル名が異なる場合は、{\tt snap\_params.pdi}ファイルの内容は無視されます。
+
+
+\subsection{バッチモードでのPDI実行}
+
+PDI起動時に「{\tt -b}」オプションを指定すると、PDIはGUIウインドウを表示せず、バッチモードで実行されます。
+
+バッチモードでのPDI実行は主に、以前に設定されたパラメータスイープにおけるパラメータ空間の変更を行うために行います。PDI起動時に「{\tt -p}」オプションで1個ないし複数個のパラメータ値を変更することにより、{\tt ケースディレクトリ/snap\_params.pdi}ファイルに保存された前回設定のパラメータ空間が更新されます。ただしこの場合は、前回パラメータ空間を設定した際と同じケースディレクトリが指定されていることが必要です。
+
+\begin{description}
+\item[実行の例] {\ }\\
+{\tt pdi  -x case01  -p Re:100/200/10}\\
+{\tt (ケースディレクトリ「case01」において、「Re」という名前のパラメータを、100から200まで10刻みでスイープさせる)}
+\end{description}
+
+PDIの「{\tt -p}」オプション指定方法の詳細は、3.1章を参照してください。
+
+\newpage
+\section{ファイルフォーマット}
+
+\subsection{パラメータ定義ファイル}
+
+パラメータ定義ファイルは、XML形式のテキストファイルとして記述されます。
+
+以下に、構成要素となるXMLノードの記述方式を示します。\\
+
+\textbf{(1) トップレベルノード}
+
+パラメータ定義ファイルのトップレベルノードは\texttt{<hpcpf\_paramdesc>}です。
+
+このノード配下に記述された内容だけがPDIの処理対象となります。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<hpcpf\_paramdesc  [classification="snapshot"]>} 
+   
+...
+
+\texttt{</hpcpf\_paramdesc>}
+
+\vspace{8pt}
+\leftskip=0pt
+\texttt{<hpcpf\_paramdesc>}ノードには、{\tt classification}属性としてキーワード\texttt{"snapshot"}を記述することができます。このキーワードが記述されたパラメータ定義ファイルは、パラメータ空間設定情報を保存したスナップショットデータファイルと認識されます。スナップショットデータファイルは通常、PDIの終了時にケースディレクトリ配下に{\tt snap\_params.pdi}というファイル名で作成されます。
+
+\vspace{12pt}
+\textbf{(2) パラメータ記述ノード}
+
+パラメータ項目の記述には、\texttt{<param>}ノードを使用します。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<param name="パラメータ名"  type="パラメータタイプ" 
+ [disable="True\textbar{}False"]>}    
+
+\parindent=14pt
+{\tt [パラメータ説明]}
+
+{\tt [サブノード群]}
+
+\parindent=0pt
+\texttt{</param>}
+
+\vspace{8pt}
+\leftskip=0pt
+\texttt{<param>}ノードには、name属性およびtype属性を記述する必要があります。
+
+name属性には、パラメータ名を記述します。
+
+type属性には、以下のいずれかのパラメータタイプを記述します。
+
+\parindent=18pt
+int 整数
+
+real 実数
+
+bool 真偽値(True \textbar{} False)
+
+string 文字列
+
+choice 文字列候補
+
+\parindent=0pt
+\texttt{<param>}ノードには、{\tt disable}属性を記述することができます。{\tt disable}属性には\texttt{"True"}または\texttt{"False"}のキーワードを記述し、{\tt True}の場合はそのパラメータは無効化されます。記述を省略した場合、{\tt disable}属性は\texttt{"False"}とみなされます。
+
+\vspace{12pt}
+\texttt{<param>}ノード配下には、パラメータ説明のテキストと、複数のサブノードを記述することができます。
+
+\texttt{<param>}ノード配下の最初のテキストは、パラメータ説明の記述として扱われます。
+
+\texttt{<param>}ノード配下に記述できるサブノードについては、以下の説明を参照して下さい。
+
+\vspace{12pt}
+\textbf{(3) パラメータ記述サブノード}
+
+以下は、\texttt{<param>}ノード配下に記述できるサブノードの説明です。
+
+\vspace{12pt}
+\textbf{(3-a) \texttt{<item>}ノード }
+
+\parindent=3pt
+\texttt{<item>}ノードは、\texttt{<param>}ノードの{\tt type}属性が\texttt{"choice"}の場合の、文字列候補の1つを記述するノードで、\texttt{<param>}ノード配下に複数(選択候補数)個記述できます。
+
+\vspace{8pt}
+\parindent=0pt
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<item>文字列候補1</item>}
+
+\texttt{<item>文字列候補2</item>}
+
+\vspace{8pt}
+\leftskip=0pt
+\texttt{<param>}ノードの{\tt type}属性が\texttt{"choice"}意外の場合は、\texttt{<item>}ノードの記述は無視されます。
+
+\vspace{12pt}
+\textbf{(3-b) \texttt{<range>}ノード・\texttt{<minmax>}ノード}
+
+\texttt{<range>}ノードおよび\texttt{<minmax>}ノードは、\texttt{<param>}ノードのtype属性が\texttt{"int"}または\texttt{"real"}の場合の、値域を記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<range  min="最小値"  max="最大値" />}
+
+\texttt{<minmax  min="最小値"  max="最大値" />}
+
+\vspace{8pt}
+\leftskip=0pt
+{\tt min}属性に値域の最小値を、{\tt max}属性に最大値を記述します。{\tt min}属性または{\tt max}属性の記述を省略した場合、省略された方向の値制限は無しになります。また、\texttt{<range>}ノードおよび\texttt{<minmax>}ノードの記述自体を省略すると、値域制限は無しになります。
+
+\vspace{12pt}
+\textbf{(3-c) \texttt{<value>}ノード}
+
+\texttt{<}value\texttt{>}ノードは、パラメータ値の初期値を記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<value>}パラメータ値\texttt{</value>}
+
+\vspace{8pt}
+\leftskip=0pt
+\texttt{<value>}ノードの記述を省略した場合、パラメータ値の初期値は\texttt{<param>}ノードの{\tt type}属性に応じ、以下に示すようになります。
+
+\parindent=18pt
+int \texttt{"}0\texttt{"}
+
+real \texttt{"}0.0\texttt{"}
+
+bool \texttt{"}False\texttt{"}
+
+string \texttt{"}\texttt{"} (空文字列)
+
+choice \texttt{"}0\texttt{"}(先頭の候補)
+
+\parindent=0pt
+\texttt{<param>}ノードの{\tt type}属性が\texttt{"}int\texttt{"}または\texttt{"}real\texttt{"}の場合は、パラメータ値は空白で区切って複数の値を列挙することができます。
+
+\vspace{12pt}
+\textbf{(3-d) \texttt{<useRange>}ノード}
+
+\texttt{<useRange>}ノードは、\texttt{<param>}ノードのパラメータ値を値域・刻み幅指定で定義するかどうかを記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<useRange> True \textbar{} False </useRange>}
+
+\vspace{8pt}
+\leftskip=0pt
+\texttt{"False"}の場合、\texttt{<value>}ノード記述に従ってパラメータ値を設定します。
+
+\texttt{"True"}の場合、\texttt{<value>}ノードの記述は参照せず、次項で説明する\texttt{<sweepRange>}ノードの記述に従ってパラメータ値を設定します。ただし、\texttt{<param>}ノードのtype属性が\texttt{"bool"}の場合はパラメータ値が\texttt{"True"}と\texttt{"False"}の2サブケースとして、\texttt{<param>}ノードの{\tt type}属性が\texttt{"choice"}の場合は 
+\texttt{<item>}ノードで記述した全ての候補をパラメータ値とするサブケースが設定されます。\texttt{<param>}ノードの{\tt type}属性が\texttt{"string"}の場合、\texttt{<useRange>}ノードの値は無視され、常に\texttt{<value>}ノードの記述に従ってパラメータ値が設定されます。
+
+\texttt{<useRange>}ノードの記述を省略した場合のデフォルト値は\texttt{"False"}です。
+
+\vspace{12pt}
+\textbf{(3-e) \texttt{<sweepRange>}ノード}
+
+\texttt{<sweepRange>}ノードは、\texttt{<useRange>}ノードの値が\texttt{"True"}の場合の、値域・刻み幅指定によるパラメータ値の設定を記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<sweepRange  min="最小値"  max="最大値"  delta="刻み幅" />}
+
+\vspace{8pt}
+\leftskip=0pt
+{\tt min}属性に値域の最小値を、{\tt max}属性に最大値を、{\tt delta}属性に刻み幅を記述します。これらの属性の記述は省略できません。
+
+尚、\texttt{<sweepRange>}ノードの記述は\texttt{<param>}ノードの{\tt type}属性が\texttt{"int"}または\texttt{"real"}の場合以外は無視されます。
+
+\vspace{12pt}
+\textbf{(3-f) \texttt{<useExcept>}ノード}
+
+\texttt{<useExcept>}ノードは、\texttt{<param>}ノードのパラメータ値に対する除外値指定を参照するかどうかを記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<useExcept> True \textbar{} False </useExcept>}
+
+\vspace{8pt}
+\leftskip=0pt
+\texttt{"False"}の場合、除外値の指定は参照されません。
+
+\texttt{"True"}の場合、次項以降で説明する\texttt{<except>}ノードまたは\texttt{<exceptRange>}ノードの記述に従って除外値を設定します(最後に記述された\texttt{<except>}ノードまたは\texttt{<exceptRange>}ノードが有効になります)。
+
+\vspace{12pt}
+\textbf{(3-g) \texttt{<except>}ノード}
+
+\texttt{<except>}ノードは、\texttt{<param>}ノードのパラメータ値に対する除外値を直接記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<except>}除外値\texttt{</except>}
+
+\vspace{8pt}
+\leftskip=0pt
+除外値は、空白で区切って複数指定することが可能です。
+尚、\texttt{<except>}ノードの記述は\texttt{<param>}ノードの{\tt type}属性が\texttt{"int"}または\texttt{"real"}の場合以外は無視されます。
+
+\vspace{12pt}
+\textbf{(3-h) \texttt{<exceptRange>}ノード}
+
+\texttt{<exceptRange>}ノードは、\texttt{<param>}ノードのパラメータ値に対する除外値を範囲で指定するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<except  min="最小値"  max="最大値" />}
+
+\vspace{8pt}
+\leftskip=0pt
+{\tt min}属性に除外範囲の最小値を、{\tt max}属性に最大値を記述します。{\tt min}属性または{\tt max}属性の記述を省略した場合、省略された方向の除外範囲制限は無しになります。
+
+尚、\texttt{<exceptRange>}ノードの記述は\texttt{<param>}ノードの{\tt type}属性が\texttt{"int"}または\texttt{"real"}の場合以外は無視されます。
+
+\vspace{12pt}
+\textbf{(3-i) 依存関係記述ノード}
+
+\texttt{<param>}ノード配下には、他のパラメータ項目との依存関係を示すためのサブノードを記述することができます。依存関係記述ノードの記述方法については、(5)を参照して下さい。
+
+\vspace{12pt}
+\textbf{(4) パラメータのグルーピング}
+
+複数のパラメータ項目をグループとしてまとめるため、\texttt{<group>}ノードを記述することができます。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<group name="グループ名">}    
+
+\parindent=14pt
+[パラメータノード群]
+
+\parindent=0pt
+\texttt{</group>}
+
+\vspace{8pt}
+\leftskip=0pt
+\texttt{<group>}ノードには、{\tt name}属性を記述する必要があります。{\tt name}属性には、グループ名を記述します。
+
+\vspace{12pt}
+\texttt{<group>}ノード配下には、グルーピングするパラメータ項目の\texttt{<param>}ノードを複数記述することができます。グルーピングされたパラメータ群は、PDIサブシステム上でパラメータ値の設定を行う際に、まとめて参照出来るように処理されます。
+
+\vspace{12pt}
+\textbf{(5) 依存関係の記述}
+
+\vspace{12pt}
+\textbf{(5-a) \texttt{<depend>}ノード}
+
+\texttt{<depend>}ノードは、このノードを配下に持つ\texttt{<param>}ノード(親ノード)の記述が、他の\texttt{<param>}ノードのパラメータ値に依存することを示すためのノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<depend target="パラメータ項目名" [target2="パラメータ項目名2"]>} 
+   
+
+\parindent=14pt
+\texttt{<cond>}ノード
+
+\parindent=0pt
+\texttt{</depend>}
+
+\vspace{8pt}
+\leftskip=0pt
+\texttt{<depend>}ノードには、依存する\texttt{<param>}ノードの名前({\tt name}属性)を\texttt{target}および\texttt{target2}属性に記述する必要があります。ここに記述した\texttt{<param>}ノードが存在しない場合、この\texttt{<depend>}ノードの記述は無視されます。\texttt{target}属性は必ず記述する必要がありますが、\texttt{target2}属性の記述は無くても構いません。
+
+\texttt{<depend>}ノード配下には、依存する\texttt{<param>}ノードとの関係条件を記述する\texttt{<cond>}ノードをサブノードとして記述します。
+
+\vspace{12pt}
+尚、\texttt{<depend>}ノードは\texttt{<param>}ノードの配下にのみサブノードとして記述することができます。
+
+\vspace{12pt}
+\textbf{(5-b) \texttt{<cond>}ノード}
+
+\texttt{<cond>}ノードは、パラメータ項目間の依存関係の条件を記述するためのノードで、\texttt{<depend>}ノードのサブノードとして記述します。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<cond>}「条件式」 ？ 「真文」 ： 「偽文」\texttt{</cond>}
+
+\vspace{8pt}
+\leftskip=0pt
+ここで、「条件式」は以下の形式で記述します。
+\begin{quote}
+「ターゲット」「演算子」「値」\\
+「ターゲット」「演算子」「値」「結合演算子」「ターゲット2」「演算子2」「値2」
+\end{quote}
+
+「ターゲット」には固定文字列として\texttt{"VAL"}を記述します。
+
+\vspace{12pt}
+
+「演算子」には、以下のいずれかを記述します。
+
+\leftskip=10pt
+{\tt 「==」または「EQ」}
+
+{\tt 「!=」または「NE」}
+
+「\texttt{<}」または「{\tt LT}」
+
+「\texttt{<=}」または「{\tt LE}」
+
+「\texttt{>}」または「{\tt GT}」
+
+「\texttt{>=}」または「{\tt GE}」
+
+\leftskip=0pt
+(一部のPython/XML処理系では、XMLタグ以外で「\texttt{<}」文字を使用出来ません。)
+
+\medskip
+\texttt{<cond>}ノードの上位の\texttt{<depend>}ノードで\texttt{target2}属性が指定されている場合、ここで指定された\texttt{<param>}ノードの値を「値2」として、2つの条件式を「結合演算子」で結合する事が出来ます。
+
+「結合演算子」以下のいずれかを記述します。
+
+\leftskip=10pt
+{\tt 「\&\&」または「AND」}
+
+{\tt 「||」または「OR」}
+
+
+\vspace{12pt}
+
+ターゲットに指定されたのパラメータのtype属性が\texttt{"string"}または\texttt{"choice"}の場合、記述できる演算子は「\texttt{==}」、「\texttt{!=}」、「\texttt{<}」および「\texttt{>}」のみで、「\texttt{==}」が文字列の一致を、それ以外は文字列の不一致を表します。
+
+「真文」および「偽文」には、以下のいずれかを記述することができます。
+
+\leftskip=10pt
+\begin{tt}
+「enable」
+
+「disable」
+
+「set value=\texttt{"}値\texttt{"}」
+
+「set range=\texttt{"}最小値  最大値\texttt{"}」
+
+「set sweep=\texttt{"}最小値  最大値  刻み幅\texttt{"}」
+\end{tt}
+\leftskip=0pt
+ここで、「{\tt enable}」および「{\tt disable}」は、このパラメータ項目の有効化／無効化を表します。また、「{\tt set value}」、「{\tt set range}」および「{\tt set sweep}」は、このパラメータ項目の値、値域およびパラメータスイープ範囲と刻み幅を設定(変更)することを意味します。
+
+\vspace{12pt}
+\textbf{(6) パラメータサーベイ方式設定情報}
+
+パラメータサーベイ方式の設定情報は、\texttt{<survey>}ノードに記述されます。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<survey>}    
+
+\parindent=14pt
+[サブノード群]
+
+\parindent=0pt
+\texttt{</survey>}
+
+\vspace{8pt}
+\leftskip=0pt
+\texttt{<survey>}ノード配下に記述できるサブノードについては、以下の説明を参照して下さい。
+
+\vspace{12pt}
+\textbf{(6-a) \texttt{<wdPattern>}ノード}
+
+\texttt{<wdPattern>}ノードは、サブケースジョブの作業ディレクトリ名のパターンを記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<wdPattern>}作業ディレクトリ名パターン\texttt{</wdPattern>}
+
+\vspace{12pt}
+\leftskip=0pt
+\textbf{(6-b) \texttt{<pfPattern>}ノード}
+
+\texttt{<pfPattern>}ノードは、サブケースジョブのソルバ入力パラメータファイル名のパターンを記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<pfPattern>}ソルバ入力パラメータファイル名パターン\texttt{</pfPattern>}
+
+\vspace{12pt}
+\leftskip=0pt
+\textbf{(6-c) \texttt{<sfPattern>}ノード}
+
+\texttt{<sfPattern>}ノードは、サブケースジョブのスコアファイル名のパターンを記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<sfPattern>}スコアファイル名パターン\texttt{</sfPattern>}
+
+\vspace{12pt}
+\leftskip=0pt
+\textbf{(6-d) \texttt{<enableSuspender>}ノード}
+
+\texttt{<enableSuspender>}ノードは、パラメータサーベイにおけるジョブの刈り込みを有効にするかどうかを記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<enableSuspender> True \textbar{} False </enableSuspender>}
+
+\vspace{8pt}
+\leftskip=0pt
+\texttt{"True"}が記述された場合、ジョブの刈り込みを有効に設定します。
+
+\vspace{12pt}
+\textbf{(6-e) \texttt{<jobSuspender>}ノード}
+
+\texttt{<jobSuspender>}ノードは、パラメータサーベイにおけるジョブの刈り込みを行うjob suspenderプログラムの実行パスを記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<jobSuspender>}job suspenderプログラムの実行パス\texttt{</jobSuspender>}
+
+\vspace{8pt}
+\leftskip=0pt
+job suspenderプログラムの実行パスは、絶対パスか、ケースディレクトリからの相対パスで指定します。
+
+\vspace{12pt}
+\textbf{(6-f) \texttt{<generationLoop>}ノード}
+
+\texttt{<generationLoop>}ノードは、パラメータサーベイにおける世代ループを有効にするかどうかを記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<generationLoop> True \textbar{} False </generationLoop>}
+
+\vspace{8pt}
+\leftskip=0pt
+\texttt{"True"}が記述された場合、世代ループを有効に設定します。
+
+\vspace{12pt}
+\textbf{(6-g) \texttt{<generator>}ノード}
+
+\texttt{<generator>}ノードは、パラメータサーベイにおける世代ループで、各サブケースの評価値を解釈し、次の世代のパラメータスイープ用のパラメータセットを生成するgeneratorプログラムの実行パスを記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<generator>}generatorプログラムの実行パス\texttt{</generator>}
+
+\vspace{8pt}
+\leftskip=0pt
+generator プログラムの実行パスは、絶対パスか、ケースディレクトリからの相対パスで指定します。
+
+\vspace{12pt}
+\textbf{(6-h) \texttt{<maxGeneration>}ノード}
+
+\texttt{<maxGeneration>}ノードは、パラメータサーベイにおける世代ループの最大世代数を記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<maxGeneration>}最大世代数\texttt{</maxGeneration>}
+
+\vspace{8pt}
+\leftskip=0pt
+最大世代数に0以下の値が設定された場合、 最大世代数の制限は無しとみなされます。
+
+\texttt{<maxGeneration>}ノードの記述を省略した場合のデフォルト値は1です。
+
+\vspace{12pt}
+\textbf{(6-i) \texttt{<curGeneration>}ノード}
+
+\texttt{<curGeneration>}ノードは、パラメータサーベイにおける世代ループの、現在の世代番号を記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<curGeneration>}世代番号\texttt{</curGeneration>}
+
+\vspace{8pt}
+\leftskip=0pt
+初代の世代番号は0で、負値が指定された場合は無効となります。
+
+\texttt{<curGeneration>}ノードの記述を省略した場合のデフォルト値は0です。
+
+\vspace{12pt}
+\textbf{(7) PDI設定情報}
+
+上記以外のPDIの設定情報は、\texttt{<snapshot>}ノードに記述されます。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<snapshot>}    
+
+\parindent=14pt
+[サブノード群]
+
+\parindent=0pt
+\texttt{</snapshot>}
+
+\vspace{8pt}
+\leftskip=0pt
+\texttt{<snapshot>}ノード配下に記述できるサブノードについては、以下の説明を参照して下さい。
+
+\vspace{12pt}
+\textbf{(7-a) \texttt{<desc\_path>}ノード}
+
+\texttt{<desc\_path>}ノードは、PDIにロードされたパラメータ定義ファイルのパスを記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<desc\_path>}パラメータ定義ファイルのパス\texttt{</desc\_path>}
+
+\vspace{8pt}
+\leftskip=0pt
+パラメータ定義ファイルのパスは絶対パスか、ケースディレクトリからの相対パスで指定します。
+
+尚、\texttt{<snapshot>}ノード配下に複数の\texttt{<desc\_path>}ノードが記述された場合、最後に記述された\texttt{<desc\_path>}ノードが有効になります。
+
+\vspace{12pt}
+\textbf{(7-b) \texttt{<templ\_path>}ノード}
+
+\texttt{<templ\_path>}ノードは、PDIに登録されたテンプレートファイルのパスを記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<templ\_path>}テンプレートファイルのパス\texttt{</templ\_path>}
+
+\vspace{8pt}
+\leftskip=0pt
+テンプレートファイルのパスは絶対パスか、ケースディレクトリからの相対パスで指定します。
+\texttt{<templ\_path>}ノードは\texttt{<snapshot>}ノード配下に複数記述することができます。
+
+
+\subsection{ソルバ入力パラメータテンプレートファイル}
+
+ソルバ入力パラメータテンプレートファイルは、ソルバ入力パラメータファイルの雛形であり、PDIで設定されたパラメータ値を埋め込むためのマクロ記述を含むものです。
+
+以下に、テンプレートファイル中ののマクロ記述形式を示します。
+\begin{quote}
+{\tt \%パラメータ名[！デフォルト値] [＊数値1] [＋数値2]\%}
+\end{quote}
+
+PDIによる入力パラメータファイル生成時に、「{\tt \%パラメータ名\%}」はPDI上で設定されたパラメータ値に置き換えられます。
+
+ここで、「パラメータ名」はパラメータ定義ファイルの\texttt{<param>}ノードの名前({\tt name}属性値)で、デフォルト値はパラメータ定義ファイル中に{\tt name}属性が「パラメータ名」である\texttt{<param>}ノードが存在しない場合のパラメータ値です。デフォルト値は(「{\tt !}」を含めて)記述を省略することができます。
+
+パラメータ項目のタイプが\texttt{"int"}または\texttt{"real"}の場合には、マクロ中に「演算子」と数値を記述することができます。これは、PDI上で設定されたパラメータ値に対して一次変換を適用した結果を入力パラメータファイルに記述するためのもので、省略が可能です。入力パラメータファイルに記述される最終的な値は、以下のようになります。
+
+\begin{quote}
+(PDIで設定されたパラメータ値) × (数値1) ＋ (数値2)
+\end{quote}
+
+パラメータ項目のタイプが\texttt{"bool"}の場合にも、マクロ中に「演算子」と数値を記述することができます。この場合、「数値1」部分はパラメータ値がTrueの場合の記述文字列、「数値2」部分はパラメータ値が{\tt False}の場合の記述文字列と解釈され、省略時にはそれぞれ\texttt{"True"}, \texttt{"False"}になります。
+
+
+\subsection{{\large{}スコアファイル}}
+
+スコアファイルは、パラメータサーベイにおける各サブケースの評価値を格納するテキストファイルで、各サブケースディレクトリに以下に示す形式で作成されます。
+\begin{tt}
+\begin{quote}
+\# コメント
+
+123.456
+\end{quote}
+\end{tt}
+
+行頭が「{\tt \#}」である行はコメントとして無視します。
+
+評価値は単一の実数値であり、コメント行を除く最初の行に記述された最初の実数値が評価値として扱われます。評価値はパラメータサーベイにおける、ある指標を表すものであり、この数値の優劣の解釈はgeneratorプログラムおよびjob 
+suspenderプログラムによって異なります。HPC/PFシステムとしては、評価値について優劣の規定(大きい値が優れている、等)は行いません。
+
+
+\subsection{{\large{}パラメータリストファイル}}
+
+パラメータリストファイルは、現在実行されているパラメータスイープのパラメータ値およびスコアファイルのパスを記述したファイルです。以下に示す情報が格納されたCSV形式のテキストファイルで、デフォルトでは「{\tt ケースディレクトリ/param\_list.csv}」に置かれます。
+\begin{tt}
+\begin{quote}
+1行目 現在の世代番号,  最大世代数
+
+2行目 パラメータ項目数,  パラメータ名1,  パラメータ名2, ...,  パラメータ名N
+
+3行目 スコアファイル名,  パラメータ値1,  パラメータ値2, ...,  パラメータ値N
+
+...
+
+\end{quote}
+\end{tt}
+
+パラメータリストファイルの１行目には、現在の世代番号(第１世代は０)と最大世代数が格納されます。最大世代数が記述されていない場合は、世代数の制限なしを意味します。
+
+２行目には、パラメータ項目数({\tt =N})と、スイープするパラメータ名({\tt N個})が記述されます。
+
+３行目以降には、各サブケース毎のスコアファイル名(サブケースディレクトリ名/スコアファイル名)と、そのサブケースにおけるパラメータ値({\tt N個})が記述されます。
+
+\newpage
+\renewcommand{\thesection}{\Alph{section}}
+\setcounter{section}{0}
+\section{外部プログラムの形式}
+
+\subsection{generatorプログラム}
+
+generatorプログラムは、パラメータサーベイにおける各サブケースの評価値を解釈し、次の世代のパラメータスイープ用のパラメータセットを生成するプログラムです。
+
+HPC/PFシステムではgeneratorプログラムのインターフェースのみを定義します。使用者は下記の仕様に則ってgeneratorプログラムを実装する必要があります。
+
+\begin{description}
+\item[コマンドライン形式] {\ }\\
+\textit{generatorプログラムファイル} {\tt [-x case\_directory] [-l param\_list.csv]}\\
+
+\item[引数説明] {\ }\\
+\begin{description}
+\item[{\tt -x  case\_directory}] ケースディレクトリ指定\\
+指定されると、generatorプログラムは起動時に、{\tt case\_directory}にカレントワーキングディレクトリを移動します。指定が省略された場合は、起動されたディレクトリとなります。
+
+\item[{\tt -l  param\_list.csv}] パラメータリストファイルの指定\\
+パラメータリストファイルのパスを指定します。絶対パスか、ケースディレクトリからの相対パスで指定します。省略時は、{\tt ケースディレクトリ/param\_list.csv}を指定したとみなされます。
+\end{description}
+
+\item[戻り値(終了ステータス)] {\ }\\
+\ 1 正常終了(次世代のパラメータスイープを実行する)
+
+\ 0 正常終了(次世代のパラメータスイープを実行しない)
+
+-1 異常終了
+\end{description}
+
+\subsection{{\large{}job suspenderプログラム}}
+
+job suspenderプログラムは、単一世代のパラメータスイープにおいて、既に実行が終了したサブケースジョブの結果から、実行する必要のないサブケースジョブの抽出と、そのサブケースジョブのキャンセルを行うプログラムです。
+
+HPC/PFシステムではjob suspenderプログラムのインターフェースのみを定義します。使用者は、下記の仕様に則ってjob suspenderプログラムを実装する必要があります。
+
+\begin{description}
+\item[コマンドライン形式] {\ }\\
+\textit{job suspenderプログラムファイル} {\tt [-x case\_directory] [-l param\_list.csv]}\\
+
+\item[引数説明] {\ }\\
+\begin{description}
+\item[{\tt -x  case\_directory}] ケースディレクトリ指定\\
+指定されると、generatorプログラムは起動時に、{\tt case\_directory}にカレントワーキングディレクトリを移動します。指定が省略された場合は、起動されたディレクトリとなります。
+
+\item[{\tt -l  param\_list.csv}] パラメータリストファイルの指定\\
+パラメータリストファイルのパスを指定します。絶対パスか、ケースディレクトリからの相対パスで指定します。省略時は、{\tt ケースディレクトリ/param\_list.csv}を指定したとみなされます。
+\end{description}
+
+\item[戻り値(終了ステータス)] {\ }\\
+0 正常終了
+
+0以外 異常終了
+\end{description}
+
+job suspenderプログラムが参照するパラメータリストファイルは、generatorプログラムが参照するものと同じです(前章を参照)。ただし、generatorプログラムの場合と異なり、job suspenderプログラムの実行時は現在の世代のパラメータスイープが実行中であり、パラメータリストファイルに記述されているスコアファイルが存在しないサブケースジョブがある点に留意が必要です。
+
+
+\end{document}
