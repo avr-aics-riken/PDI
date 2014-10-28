@@ -6,6 +6,8 @@ GUIアプリケーション機能
 ケースディレクトリ設定ダイアログクラス実装
 """
 
+#----------------------------------------------------------------------
+# imports library
 import sys, os
 
 try:
@@ -21,6 +23,7 @@ except Exception, e:
     sys.exit(str(e))
 
 
+#----------------------------------------------------------------------
 class ExecDirDlg(wx.Dialog):
     """
     HPC/PF PDIサブシステムのケースディレクトリ(実行ディレクトリ)設定用
@@ -146,14 +149,15 @@ class ExecDirDlg(wx.Dialog):
             else: self.Hide()
             return
         # load snapshot file
-        if os.path.exists('.pdi_params'):
+        if os.path.exists(pdi_dotf):
             try:
-                if not core.loadXML('.pdi_params', snapshot=True):
-                    raise Exception('load .pdi_params file failed')
+                if not core.loadXML(pdi_dotf, snapshot=True):
+                    raise Exception('load snapshot file failed: ' + pdi_dotf)
             except Exception, e:
-                log.warn(LogMsg(0, 'load %s/.pdi_params file failed\n'
-                                % core.exec_dir))
+                log.warn(LogMsg(0, 'load %s/%s file failed\n'
+                                % (core.exec_dir, pdi_dotf)))
                 log.warn(str(e))
+        # done
         if self.IsModal(): self.EndModal(wx.ID_OK)
         else: self.Hide()
         return

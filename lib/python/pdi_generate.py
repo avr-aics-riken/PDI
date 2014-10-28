@@ -182,84 +182,26 @@ def CreateScriptFile(core, wdnl=[], path='paramsweep_wf', fmt='lua',
         commStr += ' ' + comm_args
 
     dt = str(datetime.datetime.today())
-    ts = '  '
-
-    tgzfile = job + '.tar.gz'
-    tarsrcs = ''
     if wdnl == []:
         numSubCase = 1
-        tarsrcs = job + '_0'
     else:
         numSubCase = len(wdnl)
-        tarsrcs = job + '_*'
 
     try:
         ofp = open(xpath, "w")
-        ofp.write('-- created by PDI: %s\n' % str(dt))
-        ofp.write('require("hpcpf")\n')
-        ofp.write('require("xjob")\n')
+        ofp.write('-- created by PDI: %s --\n' % str(dt))
         ofp.write('\n')
-        ofp.write('local config = require("targetconf.lua")\n')
-
-        ofp.write('\n-- listup jobData\n')
-        ofp.write('numSubCase = %d\n' % numSubCase)
-        ofp.write('jobData = {}\n')
+        ofp.write('-- listup jobs\n')
+        ofp.write('jobs = {}\n')
         if wdnl == []:
-            ofp.write('jobData[1] = {targetpath = "%s_0", job = "%s"}\n' % \
+            ofp.write('jobs[1] = {path = "%s_0", job = "%s"}\n' % \
                           (job, commStr))
-            ofp.write('jobEnded[1] = false\n')
         else:
             for case in range(numSubCase):
-                ofp.write('jobData[%d] = {targetpath = "%s", job = "%s"}\n' % \
+                ofp.write('jobs[%d] = {path = "%s", job = "%s"}\n' % \
                               (case+1, wdnl[case], commStr))
-                ofp.write('jobEnded[%d] = false\n' % (case+1))
                 continue # end of for(case)
-
-        ofp.write('\n-- prepare tgz-file and send to the remote\n')
-        ofp.write('compressFile("%s", "%s")\n' % (tarsrcs, tgzfile))
-        ofp.write('io.write("uploading subcases: %s ... ")\n' % tgzfile)
-        ofp.write('uploadFile(config, "%s")\n' % tgzfile)
-        ofp.write('io.write("done, extracting ... ")\n')
-        ofp.write('remoteExtractFile(config, "%s", true)\n' % tgzfile)
-        ofp.write('deleteFile("%s")\n' % tgzfile)
-        ofp.write('print("done.")\n')
-
-        ofp.write('\n-- submit jobs on the remote\n')
-        ofp.write('for case = 1, numSubCase do\n')
-        ofp.write(ts + 'remoteJobSubmit(config, jobData[case])\n')
-        ofp.write(ts + 'print("subcase job " .. tostring(case) .. '
-                  + '"[" .. jobData[case].targetpath .. "/" .. '
-                  + 'jobData[case].job .. "] submitted.")\n')
-        ofp.write('end\n')
-
-        ofp.write('\n-- check status of the jobs on the remote\n')
-        ofp.write('while 1 do\n')
-        ofp.write(ts + 'local jstat = true\n')
-        ofp.write(ts + 'for case = 1, numSubCase do\n')
-        ofp.write(ts*2 + 'if not jobEnded[case] then\n')
-        ofp.write(ts*3 + 'jobEnded[case] = '
-                  + '(remoteJobStat(config, jobData[case]) == "END")\n')
-        ofp.write(ts*3 + 'if jobEnded[case] then\n')
-        ofp.write(ts*4 + 'print("subcase job " .. tostring(case) .. "end.")\n')
-        ofp.write(ts*3 + 'end\n')
-        ofp.write(ts*3 + 'jstat = jstat and jobEnded[case]\n')
-        ofp.write(ts + 'end\n')
-        ofp.write(ts + 'if ( jstat ) then break end\n')
-        if interval > 0:
-            ofp.write(ts + 'sleep(%d)\n' % interval)
-        ofp.write('end\n')
-        ofp.write('print("all subcase jobs finished.")\n')
-
-        ofp.write('\n-- recovery results from the remote\n')
-        ofp.write('remoteCompressFile("%s", "%s")\n' % (tarsrcs, tgzfile))
-        ofp.write('io.write("downloading result of subcases: %s ... ")\n' % \
-                      tgzfile)
-        ofp.write('downloadFile(config, "%s")\n' % tgzfile)
-        ofp.write('io.write("done, extracting ... ")\n')
-        ofp.write('os.execute("tar xvfz %s")\n' % tgzfile)
-        ofp.write('deleteFile("%s")\n' % tgzfile)
-        ofp.write('print("done.")\n')
-
+        ofp.write('-- listup jobs end\n')
         ofp.close()
         os.chmod(xpath, 0744)
     except Exception, e:

@@ -38,7 +38,7 @@ HPC/PF PDIサブシステム
     $HPCPF_HOME/conf/PDI_log.conf  ログ設定ファイル
 """
 
-_version_ = '1.3 (201410)'
+_version_ = '1.3.1 (201410)'
 
 
 #----------------------------------------------------------------------
@@ -74,6 +74,15 @@ try:
     hpcpf_home = os.environ['HPCPF_HOME']
     hpcpf_conf_dir = os.path.join(hpcpf_home, 'conf')
     hpcpf_pref0 = os.path.join(hpcpf_conf_dir, 'PDI.conf')
+except:
+    pass
+
+#----------------------------------------------------------------------
+# setup snapshot filename
+pdi_dotf = 'snap_params.pdi'
+try:
+    pdi_dotf_env = os.environ['HPCPF_PDI_SNAPSHOT']
+    pdi_dotf = pdi_dotf_env
 except:
     pass
 
@@ -733,22 +742,22 @@ if __name__ == '__main__':
         core.pd = pd_org
         log.info(LogMsg(0, 'loaded param_desc: %s' % core.desc_path))
 
-    # check .pdi_params
-    if os.path.exists('.pdi_params'):
-        mtime_snap = os.stat('.pdi_params').st_mtime
+    # check snapshot file (pdi_params.pdi)
+    if os.path.exists(pdi_dotf):
+        mtime_snap = os.stat(pdi_dotf).st_mtime
         mtime_desc = 0
         if core.desc_path != '':
             mtime_desc = os.stat(core.desc_path).st_mtime
         if mtime_desc > mtime_snap:
-            log.warn(LogMsg(0, '%s is newer than %s/.pdi_params, ignore.\n'
-                            % (core.desc_path, core.exec_dir)))
+            log.warn(LogMsg(0, '%s is newer than %s/%s, ignore snapshot.\n'
+                            % (core.desc_path, core.exec_dir, pdi_dotf)))
         else:
             try:
-                if not core.loadXML('.pdi_params', snapshot=True):
-                    raise Exception('load .pdi_params file failed')
+                if not core.loadXML(pdi_dotf, snapshot=True):
+                    raise Exception('load snapshot file failed: ' + pdi_dotf)
             except Exception, e:
-                log.warn(LogMsg(0, 'load %s/.pdi_params file failed\n'
-                                % core.exec_dir))
+                log.warn(LogMsg(0, 'load %s/%s file failed\n'
+                                % (core.exec_dir, pdi_dotf)))
                 log.warn(str(e))
 
     # add templates
@@ -788,14 +797,16 @@ if __name__ == '__main__':
             log.error(e)
             sys.exit(62)
 
-    # epilogue
+    # save snapshot
     if core.desc_path != '':
         try:
-            if not core.saveXML('.pdi_params', snapshot=True):
-                raise Exception('save .pdi_params file failed')
-            log.info(LogMsg(0, 'snapshot-ed in %s/.pdi_params' % core.exec_dir))
+            if not core.saveXML(pdi_dotf, snapshot=True):
+                raise Exception('save snapshot file failed: ' + pdi_dotf)
+            log.info(LogMsg(0, 'snapshot-ed in %s/%s'
+                            % (core.exec_dir, pdi_dotf)))
         except Exception, e:
-            log.warn(LogMsg(0, 'snapshot into %s/.pdi_params failed\n'
-                            % core.exec_dir + str(e)))
+            log.warn(LogMsg(0, 'snapshot into %s/%s failed\n'
+                            % (core.exec_dir, pdi_dotf) + str(e)))
+    # epilogue
     log.info(LogMsg(0, 'ended PDI'))
     sys.exit(0)
