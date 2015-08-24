@@ -17,6 +17,6 @@ rem echo "%DRVNAME1%%DIRNAME1%%FILENAME%"
 rem set PDI_LOG_FILENAME=%DRVNAME%%DIRNAME%\..\logs\pdi_%USERNAME%.log
 
 cd "%DRVNAME1%%DIRNAME1%"
-python "%DRVNAME%%DIRNAME%\..\lib\python\pdi.py" -d %FILENAME%
+python -B "%DRVNAME%%DIRNAME%\..\lib\python\pdi.py" -d %FILENAME%
 
 rem pause

@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 #
 # HPC/PF PDIサブシステム
-# pdiコマンドインターフェース
+# ffvc_eval_2Dcylコマンドインターフェース
 #
-# copyright (c) 2011-2013 IIS, Tokyo Univ., Japan
+# copyright (c) 2015 IIS, Tokyo Univ., Japan
 #
 
 if [ "x${HPCPF_HOME}" == "x" ]; then

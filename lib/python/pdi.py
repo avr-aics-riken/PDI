@@ -4,9 +4,9 @@
 HPC/PF PDIサブシステム
 
   コマンドライン
-   pdi.py [-h|--help] [-v] [--no_all] [-b] [-x case_dir]
-          [-d descfile] [-t templfile [-t templfile ...]] [-o out_pattern]
-          [-p param_name:param_value [-p param_name:param_value ...]]
+   pdi [-h|--help] [-v] [--no_all] [-b|-B] [-x case_dir]
+       [-d descfile] [-t templfile [-t templfile ...]] [-o out_pattern]
+       [-p param_name:param_value [-p param_name:param_value ...]]
 
     -h, --help
       ヘルプを表示して終了する。
@@ -18,6 +18,8 @@ HPC/PF PDIサブシステム
       作成する。
     -b
       バッチモードで動作
+    -B
+      バッチモードで動作(スクリプトファイルは生成しない)
     -x case_dir
       ケースディレクトリ指定
     -d descfile
@@ -32,13 +34,14 @@ HPC/PF PDIサブシステム
   環境変数
     $HPCPF_HOME  HPC/PFインストールディレクトリ
     $HPCPF_PREF_DIR  プリファレンスディレクトリ(省略時は $HOME/.hpcpf/)
+    $HPCPF_PDI_SNAPSHOT  スナップショットファイル名(省略時は'snap_params.pdi')
 
   参照ファイル
-    $HPCPF_PREF_DIR/PDI.conf  プリファレンスファイル
+    $HPCPF_PREF_DIR/PDI.conf  プリファレンスファイル(JSON)
     $HPCPF_HOME/conf/PDI_log.conf  ログ設定ファイル
 """
 
-_version_ = '1.3.1 (201410)'
+_version_ = '1.4.0 (201508)'
 
 
 #----------------------------------------------------------------------
@@ -46,6 +49,7 @@ _version_ = '1.3.1 (201410)'
 import sys, os
 import getopt
 import codecs
+import json
 from xml.dom import minidom
 
 #----------------------------------------------------------------------
@@ -76,6 +80,22 @@ try:
     hpcpf_pref0 = os.path.join(hpcpf_conf_dir, 'PDI.conf')
 except:
     pass
+
+cfg = None
+try:
+    cfg = json.loads(open(hpcpf_pref, 'r').read())
+except:
+    try:
+        cfg = json.loads(open(hpcpf_pref0, 'r').read())
+    except:
+        pass
+if cfg == None:
+    cfg = json.loads("""{
+      "solver_cfg": {
+        "none": [[], ""]
+      }
+    }""")
+
 
 #----------------------------------------------------------------------
 # setup snapshot filename
@@ -111,6 +131,12 @@ except Exception, e:
     log.error(LogMsg(61, 'pdi_tmpl module import failed'))
     log.error(e)
     sys.exit(61)
+try:
+    from pdi_moea import *
+except Exception, e:
+    log.error(LogMsg(61, 'pdi_moea module import failed'))
+    log.error(e)
+    sys.exit(71)
 
 
 #----------------------------------------------------------------------
@@ -124,6 +150,7 @@ class Core:
         初期化
         """
         self.batch_mode = False
+        self.batch_out_scr = True
         self.no_all = False
         self.exec_dir = '.'
         self.desc_path = ''
@@ -135,13 +162,9 @@ class Core:
         self.wdPattern = 'job%P'
         self.casesPerDir = 1
         self.pfPattern = '%T'
-        self.enableSuspender = False
-        self.generationLoop = False
-        self.jobSuspender = ''
-        self.maxGeneration = 1
-        self.curGeneration = 0
-        self.generator = ''
-        self.sfPattern = ''
+
+        self.moeaMode = False
+        self.moea = MOEA()
 
         self.solver_type = ''
         self.solver_comm = []
@@ -323,7 +346,6 @@ class Core:
                                     'param desc file: %s, ignored.'
                                     % (path, self.desc_path)))
                     self.pd = pd_org
-                    return True
         except Exception, e:
             log.error(LogMsg(60, 'load param_desc XML failed'))
             log.error(str(e))
@@ -349,17 +371,11 @@ class Core:
                     targParam2.cascadeParams.remove(p)
             continue # end of for(p)
 
-        # increment curGeneration
-        if snapshot:
-            if self.generationLoop and self.batch_mode:
-                self.curGeneration += 1
-                log.info(LogMsg(0, 'curGeneration incremented: %d' \
-                                    % self.curGeneration))
-            else:
-                self.curGeneration = 0
-        else:
+        if not snapshot:
             self.desc_path = path
             log.info(LogMsg(0, 'loaded param_desc: %s' % self.desc_path))
+        else:
+            log.info(LogMsg(0, 'updated param_desc: %s' % path))
 
         return True
 
@@ -397,42 +413,15 @@ class Core:
                 if cur.tagName == 'pfPattern':
                     self.pfPattern = cur.firstChild.data.strip()
                     continue
-                if cur.tagName == 'enableSuspender':
-                    val = cur.firstChild.data.strip()
-                    if val == 'True' or val == 'yes' or val == 'Yes':
-                        self.enableSuspender = True
-                    elif val == 'False' or val == 'no' or val == 'No':
-                        self.enableSuspender = False
+                if cur.tagName == 'moeaMode':
+                    val = cur.firstChild.data.strip().lower()
+                    if val == 'true' or val == 'yes':
+                        self.moeaMode = True
+                    elif val == 'false' or val == 'no':
+                        self.moeaMode = False
                     continue
-                if cur.tagName == 'generationLoop':
-                    val = cur.firstChild.data.strip()
-                    if val == 'True' or val == 'yes' or val == 'Yes':
-                        self.generationLoop = True
-                    elif val == 'False' or val == 'no' or val == 'No':
-                        self.generationLoop = False
-                    continue
-                if cur.tagName == 'jobSuspender':
-                    self.jobSuspender = cur.firstChild.data.strip()
-                    continue
-                if cur.tagName == 'maxGeneration':
-                    val = int(cur.firstChild.data.strip())
-                    if val < 1:
-                        self.maxGeneration = 1
-                    else:
-                        self.maxGeneration = val
-                    continue
-                if cur.tagName == 'curGeneration':
-                    val = int(cur.firstChild.data.strip())
-                    if val < 0:
-                        self.curGeneration = 0
-                    else:
-                        self.curGeneration = val
-                    continue
-                if cur.tagName == 'generator':
-                    self.generator = cur.firstChild.data.strip()
-                    continue
-                if cur.tagName == 'sfPattern':
-                    self.sfPattern = cur.firstChild.data.strip()
+                if cur.tagName == 'moea':
+                    self.moea.parseXML(cur)
                     continue
                 if cur.tagName == 'solver_type':
                     self.setupSolverHints(cur.firstChild.data.strip())
@@ -548,21 +537,8 @@ class Core:
             ofp.write('    <casesPerDir>%d</casesPerDir>\n' % self.casesPerDir)
         if self.pfPattern != '':
             ofp.write('    <pfPattern>%s</pfPattern>\n' % self.pfPattern)
-        ofp.write('    <enableSuspender>%s</enableSuspender>\n' \
-                      % str(self.enableSuspender))
-        ofp.write('    <generationLoop>%s</generationLoop>\n' \
-                      % str(self.generationLoop))
-        if self.jobSuspender != '':
-            ofp.write('    <jobSuspender>%s</jobSuspender>\n' \
-                          % self.jobSuspender)
-        ofp.write('    <maxGeneration>%d</maxGeneration>\n' \
-                      % self.maxGeneration)
-        ofp.write('    <curGeneration>%d</curGeneration>\n' \
-                      % self.curGeneration)
-        if self.generator != '':
-            ofp.write('    <generator>%s</generator>\n' % self.generator)
-        if self.sfPattern != '':
-            ofp.write('    <sfPattern>%s</sfPattern>\n' % self.sfPattern)
+        ofp.write('    <moeaMode>%s</moeaMode>\n' % str(self.moeaMode))
+        self.moea.outputXML(ofp, 4)
         if self.solver_type != '':
             ofp.write('    <solver_type>%s</solver_type>\n' % self.solver_type)
         ofp.write('  </survey>\n')
@@ -577,51 +553,22 @@ class Core:
 
         [in]st    ソルバータイプ文字列
         """
-        supported = ['FFB_LES3C_MPI', 'FFB_LES3C',
-                     'FFB_LES3X_MPI', 'FFB_LES3X',
-                     'FFV_C',
-                     'OpenFOAM_icoFoam',
-                     'HREMOP',
-                     'none']
         if self.solver_type == st:
             return
         if st == 'none':
             self.solver_type = ''
             return
-        stx = st.split('_')
-        if stx[0] == '':
-            raise Exception('no solver type specified')
-
-        if stx[0] == 'FFB':
-            if len(stx) < 2:
-                stx.append('LES3C') # default is LES3C
-            if stx[1] == 'LES3C':
-                if len(stx) > 2 and stx[2] == 'MPI':
-                    self.solver_comm = ['run_les3c_mpi.sh']
-                else:
-                    self.solver_comm = ['run_les3c.sh']
-                self.pfPattern = 'PARMLES3C'
-            elif stx[1] == 'LES3X':
-                if len(stx) > 2 and stx[2] == 'MPI':
-                    self.solver_comm = ['run_les3x_mpi.sh']
-                else:
-                    self.solver_comm = ['run_les3x.sh']
-                self.pfPattern = 'PARMLES3X'
-            else:
-                #self.solver_comm = []
-                raise Exception('unknown solver type specified: ' + st)
-        elif stx[0] == 'FFV':
-            self.solver_comm = ['run_ffv.sh', '%T']
-            self.pfPattern = '%T'
-        elif stx[0] == 'OpenFOAM':
-            self.solver_comm = ['run_openfoam.sh']
-            self.pfPattern = '%T'
-        elif stx[0] == 'HREMOP':
-            self.solver_comm = ['run_hremop.sh']
-            self.pfPattern = '%T'
-        else:
-            #self.solver_comm = []
+        global cfg
+        if cfg == None: return
+        try:
+            solver_cfg = cfg['solver_cfg']
+            solver = solver_cfg[st]
+            self.solver_comm = solver[0]
+            self.pfPattern = solver[1]
+        except:
             raise Exception('unknown solver type specified: ' + st)
+            return
+
         self.solver_type = st
         return
        
@@ -668,9 +615,10 @@ if __name__ == '__main__':
     # check arguments
     param_vals = []
     add_templs = []
+    out_pat = None
     try:
-        opts, args = getopt.getopt(sys.argv[1:], 'hvbx:d:t:o:p:',
-                                   ['help', 'no_all'])
+        opts, args = getopt.getopt(sys.argv[1:], 'hvbBx:d:t:o:p:',
+                                   ['help', 'no_all', 'no-all'])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -686,8 +634,12 @@ if __name__ == '__main__':
             sys.exit(0)
         if o == '-b':
             core.batch_mode = True
+            core.batch_out_scr = True
             continue
-        if o == '--no_all':
+        if o == '-B':
+            core.batch_mode = True
+            core.batch_out_scr = False
+        if o in ['--no_all', '--no-all']:
             core.no_all = True
             continue
         if o == '-x':
@@ -724,8 +676,7 @@ if __name__ == '__main__':
             log.info(LogMsg(0, 'add templ_path: %s' % path))
             continue
         if o == '-o':
-            if core.setOutputPattern(p):
-                log.info(LogMsg(0, 'set out_pattern: %s' % p))
+            out_pat = p
             continue
         if o == '-p':
             param_vals.append(p)
@@ -742,7 +693,7 @@ if __name__ == '__main__':
         core.pd = pd_org
         log.info(LogMsg(0, 'loaded param_desc: %s' % core.desc_path))
 
-    # check snapshot file (pdi_params.pdi)
+    # check snapshot file
     if os.path.exists(pdi_dotf):
         mtime_snap = os.stat(pdi_dotf).st_mtime
         mtime_desc = 0
@@ -759,6 +710,11 @@ if __name__ == '__main__':
                 log.warn(LogMsg(0, 'load %s/%s file failed\n'
                                 % (core.exec_dir, pdi_dotf)))
                 log.warn(str(e))
+
+    # set out_pattern
+    if out_pat != None:
+        if core.setOutputPattern(out_pat):
+            log.info(LogMsg(0, 'set out_pattern: %s' % out_pat))
 
     # add templates
     for t in add_templs:
@@ -784,6 +740,16 @@ if __name__ == '__main__':
         # role main loop
         app.MainLoop()
 
+        # save snapshot
+        if core.desc_path != '':
+            try:
+                if not core.saveXML(pdi_dotf, snapshot=True):
+                    raise Exception('save snapshot file failed: ' + pdi_dotf)
+                log.info(LogMsg(0, 'snapshot-ed in %s/%s'
+                                % (core.exec_dir, pdi_dotf)))
+            except Exception, e:
+                log.warn(LogMsg(0, 'snapshot into %s/%s failed\n'
+                                % (core.exec_dir, pdi_dotf) + str(e)))
     else:
         # batch mode, convert template
         if core.templ_pathes == []:
@@ -797,16 +763,6 @@ if __name__ == '__main__':
             log.error(e)
             sys.exit(62)
 
-    # save snapshot
-    if core.desc_path != '':
-        try:
-            if not core.saveXML(pdi_dotf, snapshot=True):
-                raise Exception('save snapshot file failed: ' + pdi_dotf)
-            log.info(LogMsg(0, 'snapshot-ed in %s/%s'
-                            % (core.exec_dir, pdi_dotf)))
-        except Exception, e:
-            log.warn(LogMsg(0, 'snapshot into %s/%s failed\n'
-                            % (core.exec_dir, pdi_dotf) + str(e)))
     # epilogue
     log.info(LogMsg(0, 'ended PDI'))
     sys.exit(0)

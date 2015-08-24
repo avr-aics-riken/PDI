@@ -79,7 +79,7 @@ class Param(object):
     メンバ変数
       (string)name         パラメータ名
       (enum)type           パラメータタイプ
-      (void[])values       パラメータ値リスト
+      (void[])valList       パラメータ値リスト
       (string)desc         パラメータ項目説明
       (string)group        所属パラメータグループ名
       (void[2])minmax      値域(タイプがINTまたはREALの場合のみ有効)
@@ -88,11 +88,13 @@ class Param(object):
       (bool)useRange       レンジによるパラメータスイープフラグ
       (void[3])sweepRange  パラメータスイープのレンジ[start/end/delta]
                            (タイプがINTまたはREALの場合のみ有効)
+      (int)arithPrec       少数点以下の桁数(MOEA)
       (bool)useExcept      除外値参照フラグ
       (bool)useExceptList  除外値リスト参照フラグ
       (void[])excepts      除外値リスト
       (void[2])exceptRange 除外値範囲(タイプがINTまたはREALの場合のみ有効)
       (bool)disable        無効化フラグ
+      (bool)disable_gui    GUIによる無効化フラグ
       (Param[])cascadeParams  影響を与えるパラメータのリスト
     """
 
@@ -104,7 +106,7 @@ class Param(object):
         """
         self.name = ''
         self.type = Param.Type_INT
-        self.values = []
+        self.valList = []
         self.desc = ''
         self.group = ''
         self.minmax = [None, None]
@@ -112,11 +114,13 @@ class Param(object):
         self.depend_cond = None
         self.useRange = False
         self.sweepRange = [None, None, None]
+        self.arithPrec = 0
         self.useExcept = False
         self.useExceptList = True
         self.excepts = []
         self.exceptRange = [None, None]
         self.disable = False
+        self.disable_gui = False
         self.cascadeParams = []
         self.allowNullStr = True
         return
@@ -130,25 +134,25 @@ class Param(object):
         ret = self.name + '='
         try:
             if self.type == Param.Type_INT or self.type == Param.Type_REAL:
-                if self.minmax[0] and self.values[0] < self.minmax[0]:
+                if self.minmax[0] and self.valList[0] < self.minmax[0]:
                     ret = ret + str(self.minmax[0])
-                elif self.minmax[1] and self.values[0] > self.minmax[1]:
+                elif self.minmax[1] and self.valList[0] > self.minmax[1]:
                     ret = ret + str(self.minmax[1])
                 else:
-                    ret = ret + str(self.values[0])
+                    ret = ret + str(self.valList[0])
                 if self.type == Param.Type_INT:
                     ret = ret + '(INT)'
                 else:
                     ret = ret + '(REAL)'
             elif self.type == Param.Type_BOOL or self.type == Param.Type_STRING:
-                ret = ret + self.values[0]
+                ret = ret + self.valList[0]
                 if self.type == Param.Type_BOOL:
                     ret = ret + '(BOOL)'
                 else:
                     ret = ret + '(STRING)'
             elif self.type == Param.Type_CHOICE:
-                ret = ret + self.citems[self.values[0]] \
-                    + '(CHOICE:%d)' % self.values[0]
+                ret = ret + self.citems[self.valList[0]] \
+                    + '(CHOICE:%d)' % self.valList[0]
         except:
             pass
         return ret
@@ -162,11 +166,11 @@ class Param(object):
         """
         try:
             if self.type == Param.Type_INT or self.type == Param.Type_REAL:
-                return self.values[idx]
+                return self.valList[idx]
             elif self.type == Param.Type_CHOICE:
-                return self.citems[self.values[0]]
+                return self.citems[self.valList[0]]
             else:
-                return str(self.values[0])
+                return str(self.valList[0])
         except:
             return None
 
@@ -180,36 +184,36 @@ class Param(object):
         try:
             if self.type == Param.Type_INT or self.type == Param.Type_REAL:
                 if self.minmax[0] and value < self.minmax[0]:
-                    self.values[idx] = self.minmax[0]
+                    self.valList[idx] = self.minmax[0]
                 elif self.minmax[1] and value > self.minmax[1]:
-                    self.values[idx] = self.minmax[1]
+                    self.valList[idx] = self.minmax[1]
                 else:
-                    self.values[idx] = value
+                    self.valList[idx] = value
             elif self.type == Param.Type_BOOL:
-                sval = str(value)
-                if sval == 'True' or sval == 'yes' or sval == 'Yes':
-                    self.values[idx] = True
-                elif sval == 'False' or sval == 'no' or sval == 'No':
-                    self.values[idx] = False
+                sval = str(value).lower()
+                if sval in ['true', 'yes']:
+                    self.valList[idx] = True
+                elif sval in ['false', 'no']:
+                    self.valList[idx] = False
                 else:
                     return
             elif self.type == Param.Type_CHOICE:
                 try:
                     ival = int(value)
                     if ival < 0:
-                        self.values[idx] = 0
+                        self.valList[idx] = 0
                     elif ival >= len(self.citems):
-                        self.values[idx] = len(self.citems) -1
+                        self.valList[idx] = len(self.citems) -1
                     else:
-                        self.values[idx] = ival
+                        self.valList[idx] = ival
                 except:
                     try:
                         ival = self.citems.index(value)
-                        self.values[idx] = ival
+                        self.valList[idx] = ival
                     except:
                         return
             else:
-                self.values[idx] = str(value)
+                self.valList[idx] = str(value)
         except:
             return
 
@@ -385,7 +389,7 @@ class Param(object):
         戻り値 -> パラメータ値リスト
         """
         vl = []
-        if self.values == []: return vl
+        if self.valList == []: return vl
         if self.type == Param.Type_INT or self.type == Param.Type_REAL:
             if self.useRange:
                 if self.sweepRange[0] != None and self.sweepRange[1] != None \
@@ -409,7 +413,7 @@ class Param(object):
                 else:
                     return vl
             else:
-                for v in self.values:
+                for v in self.valList:
                     if self.isValidValue(v):
                         vl.append(v)
             return vl
@@ -417,16 +421,16 @@ class Param(object):
             if self.useRange:
                 vl = [True, False]
             else:
-                vl = [self.values[0],]
+                vl = [self.valList[0],]
             return vl
         if self.type == Param.Type_STRING:
-            vl = [self.values[0],]
+            vl = [self.valList[0],]
             return vl
         if self.type == Param.Type_CHOICE:
             if self.useRange:
                 return self.citems
             else:
-                vl = [self.citems[self.values[0]],]
+                vl = [self.citems[self.valList[0]],]
                 return vl
         return vl
 
@@ -460,7 +464,7 @@ class Param(object):
                 else:
                     return 0
             else:
-                for v in self.values:
+                for v in self.valList:
                     if self.isValidValue(v):
                         c += 1
             return c
@@ -470,7 +474,7 @@ class Param(object):
             else:
                 return 1
         if self.type == Param.Type_STRING:
-            if self.values == [] or self.values[0] == '':
+            if self.valList == [] or self.valList[0] == '':
                 return 0
             else:
                 return 1
@@ -501,11 +505,13 @@ class Param(object):
             return True
 
         if xnp.hasAttribute('disable'):
-            val = xnp.getAttribute('disable')
-            if val == 'True' or val == 'yes' or val == 'Yes':
+            val = xnp.getAttribute('disable').lower()
+            if val in ['true', 'yes']:
                 self.disable = True
-            elif val == 'False' or val == 'no' or val == 'No':
+                self.disable_gui = True
+            elif val in ['false', 'no']:
                 self.disable = False
+                self.disable_gui = False
 
         p = self
         p.group = group
@@ -513,8 +519,10 @@ class Param(object):
         ltype = xnp.getAttribute('type')
         if ltype == 'int':
             p.type = Param.Type_INT
+            p.arithPrec = 0
         elif ltype == 'real':
             p.type = Param.Type_REAL
+            p.arithPrec = 6
         elif ltype == 'bool':
             p.type = Param.Type_BOOL
         elif ltype == 'string':
@@ -565,27 +573,28 @@ class Param(object):
                     try:
                         if p.type == Param.Type_INT:
                             vals = val.split()
-                            p.values = [0]*len(vals)
+                            p.valList = [0]*len(vals)
                             for i in range(len(vals)):
-                                p.values[i] = int(vals[i])
+                                p.valList[i] = int(vals[i])
                             continue
                         if p.type == Param.Type_REAL:
                             vals = val.split()
-                            p.values = [0]*len(vals)
+                            p.valList = [0]*len(vals)
                             for i in range(len(vals)):
-                                p.values[i] = float(vals[i])
+                                p.valList[i] = float(vals[i])
                             continue
                         if p.type == Param.Type_BOOL:
-                            if val == 'True' or val == 'yes' or val == 'Yes':
-                                p.values = [True]
-                            elif val == 'False' or val == 'no' or val == 'No':
-                                p.values = [False]
+                            val = val.lower()
+                            if val in ['true', 'yes']:
+                                p.valList = [True]
+                            elif val in ['false', 'no']:
+                                p.valList = [False]
                             continue
                         if p.type == Param.Type_STRING:
-                            p.values = [val]
+                            p.valList = [val]
                             continue
                         if p.type == Param.Type_CHOICE:
-                            p.values = [int(val)]
+                            p.valList = [int(val)]
                             continue
                     except Exception, e:
                         log.error(LogMsg(44, 'invalid <value> tag found'))
@@ -619,10 +628,10 @@ class Param(object):
                         continue
                     if cur.firstChild.nodeType != cur.TEXT_NODE:
                         continue
-                    val = conv_text(cur.firstChild.data.strip())
-                    if val == 'True' or val == 'yes' or val == 'Yes':
+                    val = conv_text(cur.firstChild.data.strip()).lower()
+                    if val in ['true', 'yes']:
                         p.useRange = True
-                    elif val == 'False' or val == 'no' or val == 'No':
+                    elif val in ['false', 'no']:
                         p.useRange = False
                     continue
                 if cur.tagName == 'sweepRange':
@@ -647,6 +656,21 @@ class Param(object):
                         else:
                             p.sweepRange[2] = float(val)
                     continue
+                if cur.tagName == 'arithPrect':
+                    if not cur.hasChildNodes():
+                        continue
+                    if cur.firstChild.nodeType != cur.TEXT_NODE:
+                        continue
+                    val = conv_text(cur.firstChild.data.strip())
+                    if p.type == Param.Type_REAL:
+                        vals = val.split()
+                        try:
+                            ndp = int(vals[0])
+                            if ndp >= 0:
+                                p.arithPrec = ndp
+                        except:
+                            pass
+                    continue
                 if cur.tagName == 'useExcept':
                     if p.type != Param.Type_INT and p.type != Param.Type_REAL:
                         continue
@@ -654,10 +678,10 @@ class Param(object):
                         continue
                     if cur.firstChild.nodeType != cur.TEXT_NODE:
                         continue
-                    val = conv_text(cur.firstChild.data.strip())
-                    if val == 'True' or val == 'yes' or val == 'Yes':
+                    val = conv_text(cur.firstChild.data.strip()).lower()
+                    if val in ['true', 'yes']:
                         p.useExcept = True
-                    elif val == 'False' or val == 'no' or val == 'No':
+                    elif val in ['false', 'no']:
                         p.useExcept = False
                     continue
                 if cur.tagName == 'except':
@@ -758,7 +782,7 @@ class Param(object):
             return False
 
         try:
-            if self.disable:
+            if self.disable and self.disable_gui:
                 ofp.write(ofs + '<param name="%s" type="%s" disable="yes">\n' \
                               % (self.name, ts))
             else:
@@ -786,16 +810,16 @@ class Param(object):
             for item in self.citems:
                 ofp.write(ofs2 + '<item>%s</item>\n' % item)
 
-        # values
+        # valList
         if self.type == Param.Type_BOOL or self.type == Param.Type_STRING \
                 or self.type == Param.Type_CHOICE:
-            if self.values != []:
-                ofp.write(ofs2 + '<value>%s</value>\n' % str(self.values[0]))
+            if self.valList != []:
+                ofp.write(ofs2 + '<value>%s</value>\n' % str(self.valList[0]))
             else:
                 ofp.write(ofs2 + '<value></value>\n')
-        elif len(self.values) > 0:
+        elif len(self.valList) > 0:
             ofp.write(ofs2 + '<value>\n')
-            for v in self.values:
+            for v in self.valList:
                 ofp.write(ofs4 + str(v) + '\n')
             ofp.write(ofs2 + '</value>\n')
 
@@ -815,6 +839,10 @@ class Param(object):
                 if self.sweepRange[2] != None:
                     ofp.write(' delta="%s"' % str(self.sweepRange[2]))
                 ofp.write('/>\n')
+
+        # arithPrec
+        if self.type == Param.Type_REAL and self.arithPrec != 6:
+            ofp.write(ofs2 + '<arithPrec>%d</arithPrec>\n' % self.arithPrec)
 
         # useExcept
         if self.type == Param.Type_INT or self.type == Param.Type_REAL:
@@ -879,14 +907,14 @@ def decompParamCL(pl, s):
                             % pname)
     ss = toks[1]
     if param.type == Param.Type_STRING:
-        param.values = [ss,]
+        param.valList = [ss,]
         return True
     elif param.type == Param.Type_CHOICE:
         try:
             val = int(ss)
             if val < 0 or val >= len(param.citems):
                 raise Exception()
-            param.values = [val,]
+            param.valList = [val,]
             return True
         except:
             if ss == 'ALL':
@@ -894,7 +922,7 @@ def decompParamCL(pl, s):
             elif ss in param.citems:
                 for i in range(len(param.citems)):
                     if ss == param.citems[i]:
-                        param.values = [i,]
+                        param.valList = [i,]
                         param.useRange = False
                         return True
                     continue # end of for(i)
@@ -902,23 +930,24 @@ def decompParamCL(pl, s):
                                 '%s not found in param %s items' % (ss, pname))
     elif param.type == Param.Type_BOOL:
         toks = ss.split(',')
-        values = []
+        valList = []
         for val in toks:
-            if val == 'True' or val == 'yes' or val == 'Yes':
-                values.append(True)
-            elif val == 'False' or val == 'no' or val == 'No':
-                values.append(False)
+            val = val.lower()
+            if val in ['true', 'yes']:
+                valList.append(True)
+            elif val in ['false', 'no']:
+                valList.append(False)
             else:
                 raise Exception('invalid param argument: param %s is boolean' \
                                     % pname)
             continue # end of for(val)
-        if True in values and False in values:
+        if True in valList and False in valList:
             param.useRange = True
-        elif True in values:
-            param.values = [True,]
+        elif True in valList:
+            param.valList = [True,]
             param.useRange = False
-        elif False in values:
-            param.values = [False,]
+        elif False in valList:
+            param.valList = [False,]
             param.useRange = False
         return True
     else:
@@ -937,15 +966,15 @@ def decompParamCL(pl, s):
             param.sweepRange = sweepRange
             return True
         else:
-            values = []
+            valList = []
             toks = ss.split(',')
             for t in toks:
                 if param.type == Param.Type_INT:
-                    values.append(int(t))
+                    valList.append(int(t))
                 else:
-                    values.append(float(t))
+                    valList.append(float(t))
                 continue # end of for(t)
             param.useRange = False
-            param.values = values
+            param.valList = valList
             return True
     return True

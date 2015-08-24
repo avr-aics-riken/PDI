@@ -2,9 +2,9 @@
 # -*- coding: utf-8 -*-
 #
 # HPC/PF PDIサブシステム
-# pdiコマンドインターフェース
+# genparamコマンドインターフェース
 #
-# copyright (c) 2011-2013 IIS, Tokyo Univ., Japan
+# copyright (c) 2015 IIS, Tokyo Univ., Japan
 #
 
 if [ "x${HPCPF_HOME}" == "x" ]; then
@@ -17,6 +17,7 @@ xpath=`dirname "$0"`
 dir0=`(cd "$xpath" && pwd)`
 PDI_DIR=`dirname "$dir0"`
 export PYTHONPATH=${PDI_DIR}/lib/python:$PYTHONPATH
+export PATH=${PDI_DIR}/bin:$PATH
 
 comm=`basename $0`
 exec python -B ${PDI_DIR}/lib/python/${comm}.py $*

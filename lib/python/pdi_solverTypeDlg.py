@@ -87,7 +87,6 @@ class SolverTypeDlg(wx.Dialog):
         self.listBox.Append('FFB_LES3X_MPI')
         self.listBox.Append('FFV_C')
         self.listBox.Append('OpenFOAM_icoFoam')
-        self.listBox.Append('HREMOP')
         self.listBox.Append('none')
 
         ret = self.listBox.SetStringSelection(self.parent.core.solver_type)
