@@ -28,6 +28,7 @@ except:
 
 
 def GetDirList(base, dir='.'):
+<<<<<<< HEAD
     """
     ディレクトリのリスト(dir/base*)を返す
 
@@ -35,6 +36,8 @@ def GetDirList(base, dir='.'):
     [in] dir  ターゲットディレクトリ
     戻り値 -> ディレクトリのリスト
     """
+=======
+>>>>>>> 3a372c2c1765fa92cf240a2479f8f728fedd7fb0
     arg = os.path.join(dir, base) + '*'
     return [os.path.basename(r) for r in glob.glob(arg)]
 
@@ -151,6 +154,7 @@ if __name__ == '__main__':
         vars_lst.append(var_arr)
         continue # end of for(l)
     ifp.close()
+<<<<<<< HEAD
     if population > len(vars_lst):
         print myname \
             + ': population in design variable file less than #of subcases'\
@@ -158,6 +162,11 @@ if __name__ == '__main__':
     elif population < len(vars_lst):
         print myname \
             + ': population in design variable file greater than #of subcases'
+=======
+    if population != len(vars_lst):
+        print '%s: population of design variable file mismatch to #of subcases'\
+            % myname
+>>>>>>> 3a372c2c1765fa92cf240a2479f8f728fedd7fb0
         sys.exit(3)
 
     # create paramfile(s)
