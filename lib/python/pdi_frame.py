@@ -325,48 +325,73 @@ class MainFrame(wx.Frame):
         [in] event  イベントデータ
         """
         core = self.core
-        cn = core.getTotalCaseNum()
-        if cn < 1:
-            msgDlg = wx.MessageDialog(self,
-                                      u'生成するパラメータケース数が0件です',
-                                      'pdi message', wx.OK)
-            msgDlg.ShowModal()
-            return 
-        #if core.out_pattern == '':
-        if core.pfPattern == '':
-            msgDlg = wx.MessageDialog(self,
-                                      u'出力先ディレクトリ・ファイル名の' +
-                                      u'パターンが設定されていません',
-                                      'pdi message', wx.OK)
-            msgDlg.ShowModal()
-            return
-        if len(core.templ_pathes) < 1:
-            msgDlg = wx.MessageDialog(self,
-                                      u'パラメータテンプレートファイルが' +
-                                      u'設定されていません',
-                                      'pdi message', wx.OK)
-            msgDlg.ShowModal()
-            return
+        if not core.moeaMode:
+            # simple param sweep
+            cn = core.getTotalCaseNum()
+            if cn < 1:
+                msgDlg = wx.MessageDialog(
+                    self, u'生成するパラメータケース数が0件です',
+                    'pdi message', wx.OK)
+                msgDlg.ShowModal()
+                return 
+            #if core.out_pattern == '':
+            if core.pfPattern == '':
+                msgDlg = wx.MessageDialog(
+                    self, u'出力先ディレクトリ・ファイル名の' +
+                    u'パターンが設定されていません', 'pdi message', wx.OK)
+                msgDlg.ShowModal()
+                return
+            if len(core.templ_pathes) < 1:
+                msgDlg = wx.MessageDialog(
+                    self, u'パラメータテンプレートファイルが設定されていません',
+                    'pdi message', wx.OK)
+                msgDlg.ShowModal()
+                return
 
-        # generate
-        prgDlg = None
-        try:
-            import pdi_generate
-            prgDlg = wx.ProgressDialog('generate solver parameter file(s)',
-                                       'creating subcase(s) and paramfile(s)',
-                                       maximum=cn, parent=self,
-                                       style=wx.PD_CAN_ABORT|wx.PD_APP_MODAL\
-                                           |wx.PD_AUTO_HIDE)
-            pdi_generate.GenerateParams(core, prgDlg)
-        except Exception, e:
-            msgDlg = wx.MessageDialog(self,
-                                      u'ソルバ入力パラメータファイル生成に' +
-                                      u'失敗しました\n\n' + str(e),
-                                      'pdi message', wx.OK)
-            msgDlg.ShowModal()
-        finally:
-            if prgDlg: prgDlg.Destroy()
-            
+            # generate
+            prgDlg = None
+            try:
+                import pdi_generate
+                prgDlg = wx.ProgressDialog(
+                    'generate solver parameter file(s)',
+                    'creating subcase(s) and paramfile(s)',
+                    maximum=cn, parent=self,
+                    style=wx.PD_CAN_ABORT|wx.PD_APP_MODAL|wx.PD_AUTO_HIDE)
+                pdi_generate.GenerateParams(core, prgDlg)
+            except Exception, e:
+                msgDlg = wx.MessageDialog(
+                    self, u'ソルバ入力パラメータファイル生成に' +
+                    u'失敗しました\n\n' + str(e), 'pdi message', wx.OK)
+                msgDlg.ShowModal()
+            finally:
+                if prgDlg: prgDlg.Destroy()
+        else:
+            # prepare MOEA env
+            try:
+                prgDlg = wx.ProgressDialog(
+                    'generate solver parameter file(s)',
+                    'creating MOEA environment',
+                    maximum=core.moea.population, parent=self,
+                    style=wx.PD_CAN_ABORT|wx.PD_APP_MODAL|wx.PD_AUTO_HIDE)
+                core.moea.prepareMoeaEnv(core, prgDlg)
+            except Exception, e:
+                msgDlg = wx.MessageDialog(
+                    self, u'MOEA環境の生成に失敗しました\n\n' + str(e),
+                    'pdi message', wx.OK)
+                msgDlg.ShowModal()
+                return
+
+            # create cwf
+            try:
+                core.moea.createCWF(core)
+            except Exception, e:
+                msgDlg = wx.MessageDialog(
+                    self, u'MOEA用CWFの生成に失敗しました\n\n' + str(e),
+                    'pdi message', wx.OK)
+                msgDlg.ShowModal()
+                return
+
+        # done
         return
 
 

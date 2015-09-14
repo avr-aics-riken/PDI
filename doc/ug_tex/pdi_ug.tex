@@ -62,13 +62,13 @@ PDI(パラメータ空間設計・入力支援)サブシステム\\
 
 操作説明書\\}
 \vspace*{2.5cm}
-\bf Version 1.3.1\\
+\bf Version 1.4.0\\
 \vspace*{3.5cm}
 %{\large\bf (株)富士通システムズ・イースト\\}
 \vspace*{1cm}
-%{\large\bf 解析シミュレーション部\\}
+%{\large\bf 解析ソリューション部\\}
 \vspace*{2cm}
-\bf 2014年10月\\
+\bf 2015年8月\\
 \end{center}
 \end{titlepage}
 
@@ -87,6 +87,7 @@ PDI(パラメータ空間設計・入力支援)サブシステム\\
  & & {\tt 対応ソルバの追加}\\ \hline
 2014/10 & 1.3 & ワークフローのLua化に対応\\ \hline
 2014/10 & 1.3.1 & スナップショットファイル名を{\tt .pdi\_params}から{\tt snap\_params.pdi}に変更\\ \hline
+2015/08 & 1.4 & JAXAの多目的進化計算(MOEA)に対応\\ \hline
 \end{tabular}
 
 \newpage
@@ -120,7 +121,7 @@ PDIのインストール方法について説明します。
 \hline
 アーキテクチャ & AMD64, IA32\\ \hline
 OS & Linux 2.6/3.x\\
-   & MacOS 10.8/10.9\\
+   & MacOS 10.9/10.10\\
    & Windows 7/8\\ \hline
 ソフトウエア & Python 2.x\\
              & wxPython 2.7以降/3.0\\ \hline
@@ -174,7 +175,7 @@ Windows環境向けには、Python 2.7.xのインストーラパッケージが�
 \begin{center}
 \includegraphics[width=250pt, bb=0 0 499 425]{figs/fig000.png}
 
-図1-1 Python Windowsインストーラ画面
+図1 Python Windowsインストーラ画面
 \end{center}
 
 ここで、デフォルトでは「Add python.exe to Path」という項目が「×」(インストールしない)になっているので、これを「Will be installed on local hard drive」に変更した上でインストールを進めてください。
@@ -199,7 +200,7 @@ Windows環境向けには、Python 2.7.xのインストーラパッケージが�
 \textbf{(2) MacOS}
 
 MacOS環境向けには、wxPythonのインストーラパッケージが用意されています。
-以下に示すURLより、PDIを動作させる環境にあったインストーラをダウンロードし、実行することでインストールをおこなってください。
+以下に示すURLより、PDIを動作させる環境にあったインストーラをダウンロードし、実行することでインストールを行ってください。
 \begin{quote}
 {\tt http://www.wxpython.org/download.php\#stable}
 \end{quote}
@@ -276,9 +277,9 @@ pdi  [-x case_directory] [-d param_desc] [-o output_pattern]
 
 \item[バッチモード] {\ }
 \begin{verbatim}
-pdi -b [-x case_directory] [-d param_desc] [-o output_pattern]
-       [-t template_file -t template_file ...]
-       [-p param_name:param_value -p  param_name:param_value ...]
+pdi {-b | -B} [-x case_directory] [-d param_desc] [-o output_pattern]
+    [-t template_file -t template_file ...]
+    [-p param_name:param_value -p  param_name:param_value ...]
 \end{verbatim}
 
 \item[引数説明] {\ }
@@ -286,6 +287,9 @@ pdi -b [-x case_directory] [-d param_desc] [-o output_pattern]
 \item[{\tt -b}] {\ }\\
 バッチモード実行。
 指定された場合、GUIウインドウを表示せず、バッチモードで実行します。
+\item[{\tt -B}] {\ }\\
+バッチモード実行。
+{\tt -b}指定の場合と同じですが、ワークフロー実行用スクリプトファイル({\tt pdi\_generated.lua})の生成は行いません。
 \item[{\tt -x  case\_directory}] {\ }\\
 ケースディレクトリ指定。
 指定されると、PDIは起動時にcase\_directoryにカレントワーキングディレクトリを移動します。指定が省略された場合は、起動ディレクトリとなります。
@@ -359,7 +363,7 @@ PDIをGUIモードで実行すると、PDIのメインウインドウが表示�
 \begin{center}
 \includegraphics[width=360pt, bb=0 0 982 512]{figs/fig001.png}
 
-図3-1 PDIメインウインドウ
+図2 PDIメインウインドウ
 \end{center}
 
 
@@ -433,17 +437,18 @@ PDIのパラメータ空間設計支援は、パラメータ定義ファイル�
 GUIモードで起動されたPDIの「Survey」タブを選択すると、下図に示すパネルが表示され、ここでパラメータサーベイの方式を設定することができます。
 
 \begin{center}
-\includegraphics[width=360pt, bb=0 0 982 385]{figs/fig002.png}
+\includegraphics[width=360pt, bb=0 0 984 511]{figs/fig002.png}
 
-図3-2 PDIのSurveyパネル
+図3 PDIのSurveyパネル
 \end{center}
 
+「Survey」タブ最上段のラジオボタンで「Simple param survey」が選択されている場合、「Survey」タブの左側が有効化されており、以下に示す項目を設定する事ができます。
 
 全てのパラメータケース(サブケース)を組み合わせた数(全探査数)が「{\tt Total subcase number}」に表示されます。この数が0の場合は、パラメータ空間が縮退していることを意味し、ソルバ入力用のパラメータファイル生成を行うことはできません。
 
 全探査数に対して、幾つの作業ディレクトリを作成するかを「{\tt subcase directory number}」に、または1つの作業ディレクトリにつき幾つのパラメータケースを割り当てるかを「{\tt subcases per directory}」に入力します。どちらか一方が入力されると、もう一方は自動的に更新されます。初期値は、1つの作業ディレクトリにつき１つのパラメータケース(作業ディレクトリ数=全探査数)です。(作業ディレクトリ数)×(作業ディレクトリ当りのパラメータケース数)≠(全探査数)の場合は、最後の作業ディレクトリに割り当てられるパラメータケース数で調整されます。
 
-作業ディレクトリ名({\tt subcase directory pattern})、ソルバ入力用パラメータファイル名({\tt parameter file pattern})、およびスコアファイル名({\tt score file pattern})については、以下に示すキーワードを使用してパターンを設定します。
+作業ディレクトリ名({\tt subcase directory pattern})、ソルバ入力用パラメータファイル名({\tt parameter file pattern})については、以下に示すキーワードを使用してパターンを設定します。
 
 \begin{description}
 \item[\%P] パラメータ組み合わせ
@@ -456,18 +461,16 @@ GUIモードで起動されたPDIの「Survey」タブを選択すると、下�
 \item[\#T] ソルバ入力パラメータファイルが複数ある場合のファイル番号
 \end{description}
 
-尚、全探査数が1の場合は、作業ディレクトリ名中の上記パターンは全て空文字列に置き換えられ、末尾に「{\tt \_0}」が追加されます。
+\bigskip
 
-ジョブの刈り込みを行う場合、「{\tt enable job suspender}」のチェックをONにします。この場合、「{\tt job suspender}」にジョブの刈り込みを行うユーザプログラムのパスを設定します。
+尚、「Survey」タブ最上段のラジオボタンで「MOEA param survey」を選択すると、「Survey」タブの右側部分が有効になり、MOEA(多目的進化計算)による最適化の設定を行う事ができます。
 
-繰り返し型のパラメータサーベイを行う場合、「{\tt generation loop}」のチェックをONにします。この場合、「{\tt max generation}」に最大世代(ループ)数を、「{\tt generator}」に繰り返しチェックと次世代のパラメータ空間を生成するユーザプログラムのパスを設定します。
-
-尚、ジョブの刈り込みまたは繰り返し型のパラメータサーベイを行う場合、ソルバが生成するスコアファイル名のパターンが「{\tt score file pattern}」に設定されていなければなりません。空白の場合はデフォルトで「{\tt SCORE}」というァイル名パターンが指定されたとみなされます。
+PDIによるMOEA最適化については「3 MOEA最適化の設定」を参照して下さい。
 
 
 \subsection{ソルバ入力用パラメータファイルの生成機能}
 
-PDIによるソルバ入力用パラメータファイルの生成を行うには、パラメータ空間設定(3.2章)とパラメータサーベイ方式設定(3.3章)に加えて、ソルバ入力パラメータテンプレートファイルの指定と、ソルバ種別の指定が必要です。
+PDIによるソルバ入力用パラメータファイルの生成を行うには、パラメータ空間の設定とパラメータサーベイ方式の設定に加え、ソルバ入力パラメータテンプレートファイルの指定と、ソルバ種別の指定が必要です。
 
 \subsubsection{ソルバ入力パラメータテンプレートファイルの指定}
 
@@ -480,7 +483,7 @@ PDIをGUIモードで起動した場合、「Edit」メニューの「{\tt set p
 \begin{center}
 \includegraphics[width=184pt, bb=0 0 327 296]{figs/fig003.png}
 
-図3-3 PDIのテンプレートファイル設定ダイアログ
+図4 PDIのテンプレートファイル設定ダイアログ
 \end{center}
 
 このダイアログウインドウには、既に登録済みのソルバ入力用パラメータテンプレートファイルがリスト表示されています。このダイアログは「{Close」ボタンをクリックすると閉じられます。
@@ -499,7 +502,7 @@ GUIモードで起動したPDIの「Edit」メニューから「{\tt select solv
 \begin{center}
 \includegraphics[width=176pt, bb=0 0 312 296]{figs/fig004.png}
 
-図3-4 PDIのソルバ種別選択ダイアログ
+図5 PDIのソルバ種別選択ダイアログ
 \end{center}
 
 ここには、PDIに予め登録されているソルバ種別の一覧がリスト表示され、リスト中の項目を選択状態にして「OK」ボタンをクリックすると、ソルバ種別の設定がおこなわれます。
@@ -528,7 +531,7 @@ OpenFoam\_icoFoam & run\_openfoam.sh &  \tabularnewline
 \end{tabular}
 \end{tt}
 
-上記の表中の「{\tt \%T}」は テンプレートファイルのベース名(3.3章参照)を表します。
+上記の表中の「{\tt \%T}」は テンプレートファイルのベース名を表します。
 
 また、パラメータスイープ実行のための設定ファイルにおいては、上記の表の「ソルバ実行コマンド」に示された実行ファイル(シェルスクリプト)がケースディレクトリ配下に存在することを前提としています。
 
@@ -553,28 +556,15 @@ GUIモードで起動されたPDIでは、「File」メニューの「{\tt gener
 
 実際のソルバ実行を含むパラメータスイープ／パラメータサーベイの実行は、ケースワークフローからLuaスクリプトとして実行されます。
 
-PDIは、ソルバ入力用パラメータファイルの生成時に、Luaスクリプトファイルとして、ケースディレクトリ配下に{\tt paramsweep\_wf.lua}というファイルを作成します。同名のファイルが既に存在する場合、そのファイルは上書きされます。\\
+PDIは、ソルバ入力用パラメータファイルの生成時に、Luaスクリプトファイルとして、ケースディレクトリ配下に{\tt pdi\_generated.lua}というファイルを作成します。同名のファイルが既に存在する場合、そのファイルは上書きされます。
+
+{\tt pdi\_generated.lua}は、ケースワークフローファイル({\tt cwf.lua})から{\tt require}され、関数{\tt EXEC\_PARAMSWEEP(...)}が呼び出されることを前提として記述されています。\\
 
 \textbf{(4) パラメータリストファイルの作成}
 
-パラメータリストファイルは、現在のパラメータ空間設定の下で実行されるパラメータスイープのパラメータ値およびスコアファイルのパスを記述したCSV形式のテキストファイルです。
+パラメータリストファイルは、現在のパラメータ空間設定の下で実行されるパラメータスイープのパラメータ値を記述したCSV形式のテキストファイルです。
 
 PDIは、ソルバ入力用パラメータファイルの生成時に、パラメータリストファイルをケースディレクトリ配下に {\tt param\_list.csv}というファイル名で作成します。同名のファイルが既に存在する場合、そのファイルは上書きされます。\\
-
-\textbf{(5) generator、job suspenderプログラムパスのエクスポート}
-
-「{\tt enable job suspender}」および「{\tt generation loop}」がONの場合、「{\tt job suspender}」および「{\tt generator}」に設定されたプログラムの実行パスを、以下に示すファイルに出力します。
-
-\begin{quote}
-\begin{description}
-\item[{\tt job suspender：}] {\ }\\
-{\tt ケースディレクトリ/job\_suspender\_prog}
-\item[{\tt generator：}] {\ }\\
-{\tt ケースディレクトリ/generator\_prog}
-\end{description}
-\end{quote}
-
-尚、「{\tt enable job suspender}」および「{\tt generation loop}」がOFFの場合は、上記ファイルが存在していれば、ファイルを削除します。
 
 
 \subsection{パラメータ空間設定情報の保存}
@@ -588,7 +578,7 @@ PDIは終了時に、その時点でのパラメータ空間設定情報とパ�
 
 \subsection{バッチモードでのPDI実行}
 
-PDI起動時に「{\tt -b}」オプションを指定すると、PDIはGUIウインドウを表示せず、バッチモードで実行されます。
+PDI起動時に「{\tt -b}」または「{\tt -B}」オプションを指定すると、PDIはGUIウインドウを表示せず、バッチモードで実行されます。
 
 バッチモードでのPDI実行は主に、以前に設定されたパラメータスイープにおけるパラメータ空間の変更を行うために行います。PDI起動時に「{\tt -p}」オプションで1個ないし複数個のパラメータ値を変更することにより、{\tt ケースディレクトリ/snap\_params.pdi}ファイルに保存された前回設定のパラメータ空間が更新されます。ただしこの場合は、前回パラメータ空間を設定した際と同じケースディレクトリが指定されていることが必要です。
 
@@ -598,7 +588,169 @@ PDI起動時に「{\tt -b}」オプションを指定すると、PDIはGUIウイ
 {\tt (ケースディレクトリ「case01」において、「Re」という名前のパラメータを、100から200まで10刻みでスイープさせる)}
 \end{description}
 
-PDIの「{\tt -p}」オプション指定方法の詳細は、3.1章を参照してください。
+PDIの「{\tt -p}」オプション指定方法の詳細は、2.1章を参照してください。
+
+\newpage
+\section{MOEA最適化の設定}
+
+\subsection{概要}
+
+工学的な最適化問題は、最適化の対象である目的関数が複数(一般的には2個以上)存在する多目的最適化問題である場合が多く、しかもそれらは相反する性質を持つ場合も珍しくありません。
+
+JAXA(宇宙航空研究開発機構\footnote{\tt http://www.jaxa.jp})が開発したCheetahは、生物の進化のメカニズムを模倣した進化的アルゴリズム(EA)を多目的最適化問題に適用するMOEA(多目的進化計算)のソフトウエアフレームワークです。
+
+PDIでは、設定したパラメータ空間内での最適化計算をCheetahを使用して実行するためのスクリプトの生成と、実行環境を設定する機能を含んでいます。
+
+本章では、PDIによるMOEAのパラメータ設定と実行方法について説明します。
+
+尚、JAXAによる多目的設計探査に関する詳細については、以下のURLを参照して下さい。
+\begin{quote}
+{\tt http://flab.eng.isas.jaxa.jp/monozukuri/mode/index.html}
+\end{quote}
+
+
+\subsection{MOEAの設定方法}
+
+MOEAの設定は「Survey」タブを選択し、最上段の「MOEA param survey」ラジオボタンを選択する事で行えるようになります。選択すると「Survey」タブ上で有効化されている部分が変更され、MOEAの設定が可能になります。
+
+\begin{center}
+\includegraphics[width=360pt, bb=0 0 984 520]{figs/fig005.png}
+
+図6 PDIのSurveyパネル(「MOEA param survey」選択時)
+\end{center}
+
+ここでは、以下に示す項目を設定します。
+
+\begin{description}
+\item[subcase directory pattern] {\ }\\
+作業ディレクトリ名のパターン(ベース部分)を指定します。
+「Simple param survey」選択時と指定方法は同じですが、パターン表現用のキーワード(\%P, \%Q, \#D 等)は全て空文字列と置き換えられ(取り除かれ)、残った文字列を作業ディレクトリ名のベース部分として使用します。
+
+実際の作業ディレクトリは、ケースディレクトリ配下に「ベース部分\_整数」という形式で、population(後述)個作成されます。\\
+
+\item[parameter file pattern] {\ }\\
+各作業ディレクトリ配下に作成される、ソルバ入力用パラメータファイルのファイル名パターンを指定します。「Simple param survey」選択時と指定方法は同じです。\\
+
+\item[design variable number] {\ }\\
+MOEAにおける設計変数となるパラメータ項目の数が表示されます。この値は変更できません。
+
+PDIにおけるMOEA param sweepでは、「レンジ指定」を選択し、範囲(最小/最大値)を設定したint型またはreal型のパラメータを設計変数として扱います。「design variable number」欄には、この条件を満たすパラメータ項目の数が表示されます。
+
+この欄の値が0の場合は、探索すべき設計変数が存在しない事を意味し、MOEA計算は行えません。
+
+尚、「Survey」タブで「MOEA param sweep」を選択した場合、各パラメータ項目設定タブ上では「レンジ指定」を表す「sweep range」の表記が「search range」に変わり、パラメータの刻み幅入力欄(delta)は有効精度の入力欄(precision)に変わります(下図参照)。
+
+\begin{center}
+\includegraphics[width=320pt, bb=0 0 856 429]{figs/fig006.png}
+
+図7 PDIのパラメータ設定パネル(「MOEA param survey」選択時)
+\end{center}
+
+\item[population] {\ }\\
+MOEA計算における個体数を設定します。ここで設定した個数だけ作業ディレクトリが作成されます。4の倍数である必要があります。また、0以下の値は設定できません。
+
+\item[max generation] {\ }\\
+MOEA計算における世代数を設定します。ここで設定した回数だけ\par
+\begin{center}
+\{ソルバー実行 \ ⇒ \ パラメータ値(設計変数)の進化計算\}
+\end{center}\par
+がループ実行されます。0以下の値は設定できません。
+
+\item[evaluator path] {\ }\\
+MOEA計算における評価モジュール(evaluator)のパスを設定します。
+入力欄の右の「...」ボタンをクリックするとファイル選択ダイアログが表示され、ここでファイルを選択すると入力欄に反映されます。
+
+評価モジュールは、ソルバーの実行結果から目的関数の値を計算する外部プログラムであり、最適化問題毎に使用者が用意する必要があります。評価モジュールの仕様(インターフェースの詳細)については、「5 外部プログラムの形式」を参照して下さい。
+
+\item[optimizer path] {\ }\\
+MOEA計算における進化計算モジュール(optimizer)のパスを設定します。
+入力欄の右の「...」ボタンをクリックするとファイル選択ダイアログが表示され、ここでファイルを選択すると入力欄に反映されます。
+
+進化計算モジュールは、目的関数の値から、次の世代の設計変数を生成する外部プログラムであり、PDIではCheetahを使用した進化計算モジュール({\tt xpdi\_moea\_cheetah})を提供しています。進化計算モジュールの仕様(インターフェースの詳細)については、「5 外部プログラムの形式」を参照して下さい。
+
+\item[random seed] {\ }\\
+MOEA計算において使用する乱数の種を設定します。有効な値は0.0〜1.0ですが、負値を設定した場合は乱数を用いて設定されます。
+
+\item[crossover rate] {\ }\\
+MOEA計算における交叉率を設定します。有効な値は0.0〜1.0です。
+
+\item[mutation rate] {\ }\\
+MOEA計算における突然変異率を設定します。有効な値は0.0〜1.0ですが、負値を設定した場合は自動的に$(1.0 / 設計変数個数)$に設定されます。
+
+\item[eta crossover] {\ }\\
+MOEA計算における交叉のdistribution indexを設定します。有効な値は5〜40です。
+
+\item[eta mutation] {\ }\\
+MOEA計算における突然変異のdistribution indexを設定します。有効な値は5〜50です。
+
+\item[history] {\ }\\
+MOEA計算において、全評価個体の履歴ファイル(interface/history.txt)を作成するかどうかを設定します。
+
+\item[duplicate] {\ }\\
+MOEA計算において、重複する設計点を作成するかどうかを設定します。
+
+
+
+\end{description}
+
+
+\subsection{MOEA実行環境の生成}
+
+前節に示したMOEAの設定を行い、「File」メニューの「{\tt generate solver parameter file(s)}」を選択すると、MOEA計算実行用の環境が生成されます。
+
+ケースディレクトリ配下に以下のようなディレクトリ・ファイルが生成されます。
+
+\begin{verbatim}
+[ケースディレクトリ]
+  ├── (cwf.lua)           (ケースワークフローファイル)
+  ├── (input_data)
+  │     └── (run.sh)     (ソルバー実行スクリプト)
+  ├── cfg
+  │     ├── moea.cfg     (Cheetah用コンフィグレーションファイル)
+  │     └── mop.cfg      (目的関数定義ファイル)
+  ├── job_{0 〜 個体数-1} (サブケースディレクトリ)
+  │     └── run.sh       (ソルバー実行スクリプト)
+  ├── interface           (Cheetah作業用ディレクトリ)
+  ├── moea_out            (Cheetah出力用ディレクトリ)
+  └── pdi_generated.lua   (ワークフロー記述Luaファイル)
+\end{verbatim}
+
+ソルバー実行スクリプトは、{\tt input\_data}ディレクトリ配下から、全てのサブケースディレクトリ配下にコピーされます。ファイル名はソルバー種別によって異なります。
+
+ワークフロー記述Luaファイル({\tt pdi\_generated.lua})は、ケースワークフローファイル({\tt cwf.lua})から{\tt require}され、関数{\tt EXEC\_PARAMSWEEP(...)}が呼び出されることを前提として記述されています。
+
+尚、ケースワークフローファイルおよび{\tt input\_data}ディレクトリは、ケースディレクトリに事前に用意されている事が前提です。
+
+
+\subsection{MOEAの実行}
+
+PDIで生成したMOEA実行環境は、ケースディレクトリでケースワークフローを実行する事で実行されます。この実行には、Xjob(hpcpfGUIに付属)のライブラリパスが環境変数{\tt LUA\_PATH}に設定されている事が必要です\footnote{hpcpfGUIから実行される場合は、ディレクトリ移動と環境変数設定は自動で行われています。}。
+
+\begin{verbatim}
+  $ cd "ケースディレクトリ"
+  $ export LUA_PATH="hpcpfGUIインストールディレクトリ"/lib
+  $ lua cwf.lua
+\end{verbatim}
+
+以下に、ケースワークフローが実行された際に行われるMOEA計算処理の概要を示します。
+
+\begin{enumerate}
+\item optimizer({\tt xpdi\_moea\_cheetah})を世代番号0で実行します。
+これにより、探査空間内のランダムな設計点が個体数個生成され、{\tt interface/pop\_vars\_eval.txt}ファイルに出力されます。
+
+\item 内部コマンド{\tt xpdi\_genparam}を実行します。
+これにより、内部的にPDIがバッチモードで実行され、各サブケースディレクトリ配下にそるバー入力パラメータファイルが生成されます。
+
+\item 個体数個分のソルバー実行ジョブが発行されます。
+
+\item 全てのジョブの完了後、evaluatorが実行されます。
+これにより、各ジョブ毎の目的関数(および制約条件)が計算され、{\tt interface/pop\_objs\_eval.txt}ファイル(および{\tt pop\_cons\_eval.txt})に出力されます。
+
+\item 世代番号を$+1$し、最大世代数回、処理1から繰り返します。
+\end{enumerate}
+
+計算結果は、{\tt moea\_out/allpop.txt}に出力されます。
+
 
 \newpage
 \section{ファイルフォーマット}
@@ -644,9 +796,9 @@ PDIの「{\tt -p}」オプション指定方法の詳細は、3.1章を参照し
  [disable="True\textbar{}False"]>}    
 
 \parindent=14pt
-{\tt [パラメータ説明]}
+\{パラメータ説明文\}
 
-{\tt [サブノード群]}
+\{サブノード群\}
 
 \parindent=0pt
 \texttt{</param>}
@@ -846,7 +998,25 @@ choice \texttt{"}0\texttt{"}(先頭の候補)
 尚、\texttt{<exceptRange>}ノードの記述は\texttt{<param>}ノードの{\tt type}属性が\texttt{"int"}または\texttt{"real"}の場合以外は無視されます。
 
 \vspace{12pt}
-\textbf{(3-i) 依存関係記述ノード}
+\textbf{(3-i) \texttt{<arithPrec>}ノード}
+
+\texttt{<arithPrec>}ノードは、\texttt{<param>}ノードのパラメータをMOEAの設計変数として使用する場合に、変数の精度(小数点以下の桁数)を指定するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<arithPrec>桁数</arithPrec>}
+
+\vspace{8pt}
+\leftskip=0pt
+記述を省略した場合、変数の精度は\texttt{<param>}ノードの{\tt type}属性が\texttt{"int"}の場合は0、\texttt{"real"}の場合は6になります。
+
+尚、\texttt{<arithPrec>}ノードの記述は\texttt{<param>}ノードの{\tt type}属性が\texttt{"int"}または\texttt{"real"}の場合以外は無視されます。
+
+\vspace{12pt}
+\textbf{(3-j) 依存関係記述ノード}
 
 \texttt{<param>}ノード配下には、他のパラメータ項目との依存関係を示すためのサブノードを記述することができます。依存関係記述ノードの記述方法については、(5)を参照して下さい。
 
@@ -863,7 +1033,7 @@ choice \texttt{"}0\texttt{"}(先頭の候補)
 \texttt{<group name="グループ名">}    
 
 \parindent=14pt
-[パラメータノード群]
+\{パラメータノード群\}
 
 \parindent=0pt
 \texttt{</group>}
@@ -993,7 +1163,7 @@ choice \texttt{"}0\texttt{"}(先頭の候補)
 \texttt{<survey>}    
 
 \parindent=14pt
-[サブノード群]
+\{サブノード群\}
 
 \parindent=0pt
 \texttt{</survey>}
@@ -1029,86 +1199,64 @@ choice \texttt{"}0\texttt{"}(先頭の候補)
 
 \vspace{12pt}
 \leftskip=0pt
-\textbf{(6-c) \texttt{<sfPattern>}ノード}
+\textbf{(6-c) \texttt{<moeaMode>}ノード}
 
-\texttt{<sfPattern>}ノードは、サブケースジョブのスコアファイル名のパターンを記述するノードです。
-
-\vspace{8pt}
-\leftskip=12pt
-\textbf{[記述形式]}
-
-\leftskip=42pt
-\texttt{<sfPattern>}スコアファイル名パターン\texttt{</sfPattern>}
-
-\vspace{12pt}
-\leftskip=0pt
-\textbf{(6-d) \texttt{<enableSuspender>}ノード}
-
-\texttt{<enableSuspender>}ノードは、パラメータサーベイにおけるジョブの刈り込みを有効にするかどうかを記述するノードです。
+\texttt{<moeaMode>}ノードは、MOEA計算を有効にするかどうかを記述するノードです。
 
 \vspace{8pt}
 \leftskip=12pt
 \textbf{[記述形式]}
 
 \leftskip=42pt
-\texttt{<enableSuspender> True \textbar{} False </enableSuspender>}
+\texttt{<moeaMode> True \textbar{} False </moeaMode>}
 
 \vspace{8pt}
 \leftskip=0pt
-\texttt{"True"}が記述された場合、ジョブの刈り込みを有効に設定します。
+\texttt{"True"}が記述された場合、MOEA計算を有効に設定します。
 
 \vspace{12pt}
-\textbf{(6-e) \texttt{<jobSuspender>}ノード}
+\leftskip=0pt
+\textbf{(6-d) \texttt{<moea>}ノード}
 
-\texttt{<jobSuspender>}ノードは、パラメータサーベイにおけるジョブの刈り込みを行うjob suspenderプログラムの実行パスを記述するノードです。
+\texttt{<moea>}ノードは、MOEA計算を実行する際の各種設定値を記述するノードです。
 
 \vspace{8pt}
 \leftskip=12pt
 \textbf{[記述形式]}
 
 \leftskip=42pt
-\texttt{<jobSuspender>}job suspenderプログラムの実行パス\texttt{</jobSuspender>}
+\texttt{<moea>}
+
+\parindent=14pt
+\{サブノード群\}
+
+\parindent=0pt
+\texttt{</moea>}
 
 \vspace{8pt}
 \leftskip=0pt
-job suspenderプログラムの実行パスは、絶対パスか、ケースディレクトリからの相対パスで指定します。
+\texttt{"<moea>"}ノード配下には、MOEA計算用の各種設定を記述するための各種ノード群をサブノードとして記述します。
 
 \vspace{12pt}
-\textbf{(6-f) \texttt{<generationLoop>}ノード}
+\textbf{(6-e) \texttt{<population>}ノード}
 
-\texttt{<generationLoop>}ノードは、パラメータサーベイにおける世代ループを有効にするかどうかを記述するノードです。
+\texttt{<population>}ノードは、MOEA計算の個体数を記述するノードです。
 
 \vspace{8pt}
 \leftskip=12pt
 \textbf{[記述形式]}
 
 \leftskip=42pt
-\texttt{<generationLoop> True \textbar{} False </generationLoop>}
+\texttt{<population>}個体数\texttt{</population>}
 
 \vspace{8pt}
 \leftskip=0pt
-\texttt{"True"}が記述された場合、世代ループを有効に設定します。
+個体数は1以上の4の倍数の整数で指定します。MOEA計算を行う場合、このノードの記述は省略できません。
 
 \vspace{12pt}
-\textbf{(6-g) \texttt{<generator>}ノード}
+\textbf{(6-f) \texttt{<maxGeneration>}ノード}
 
-\texttt{<generator>}ノードは、パラメータサーベイにおける世代ループで、各サブケースの評価値を解釈し、次の世代のパラメータスイープ用のパラメータセットを生成するgeneratorプログラムの実行パスを記述するノードです。
-
-\vspace{8pt}
-\leftskip=12pt
-\textbf{[記述形式]}
-
-\leftskip=42pt
-\texttt{<generator>}generatorプログラムの実行パス\texttt{</generator>}
-
-\vspace{8pt}
-\leftskip=0pt
-generator プログラムの実行パスは、絶対パスか、ケースディレクトリからの相対パスで指定します。
-
-\vspace{12pt}
-\textbf{(6-h) \texttt{<maxGeneration>}ノード}
-
-\texttt{<maxGeneration>}ノードは、パラメータサーベイにおける世代ループの最大世代数を記述するノードです。
+\texttt{<maxGeneration>}ノードは、MOEA計算の最大世代数を記述するノードです。
 
 \vspace{8pt}
 \leftskip=12pt
@@ -1119,27 +1267,172 @@ generator プログラムの実行パスは、絶対パスか、ケースディ�
 
 \vspace{8pt}
 \leftskip=0pt
-最大世代数に0以下の値が設定された場合、 最大世代数の制限は無しとみなされます。
+最大世代数は1以上の整数で指定します。
 
 \texttt{<maxGeneration>}ノードの記述を省略した場合のデフォルト値は1です。
 
-\vspace{12pt}
-\textbf{(6-i) \texttt{<curGeneration>}ノード}
 
-\texttt{<curGeneration>}ノードは、パラメータサーベイにおける世代ループの、現在の世代番号を記述するノードです。
+\vspace{12pt}
+\textbf{(6-g) \texttt{<evaluator>}ノード}
+
+\texttt{<evaluator>}ノードは、MOEA計算における評価モジュール(evaluatorプログラム)の実行パスを記述するノードです。
 
 \vspace{8pt}
 \leftskip=12pt
 \textbf{[記述形式]}
 
 \leftskip=42pt
-\texttt{<curGeneration>}世代番号\texttt{</curGeneration>}
+\texttt{<evaluator>}evaluatorプログラムの実行パス\texttt{</evaluator>}
 
 \vspace{8pt}
 \leftskip=0pt
-初代の世代番号は0で、負値が指定された場合は無効となります。
+evaluatorプログラムの実行パスは、絶対パスか、ケースディレクトリからの相対パスで指定します。
 
-\texttt{<curGeneration>}ノードの記述を省略した場合のデフォルト値は0です。
+\vspace{12pt}
+\textbf{(6-h) \texttt{<optimizer>}ノード}
+
+\texttt{<optimizer>}ノードは、MOEA計算における最適化モジュール(optimizerプログラム)の実行パスを記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<optimizer>}optimizerプログラムの実行パス\texttt{</optimizer>}
+
+\vspace{8pt}
+\leftskip=0pt
+optimizerプログラムの実行パスは、絶対パスか、ケースディレクトリからの相対パスで指定します。
+
+\texttt{<optimizer>}ノードの記述を省略した場合のデフォルト値は、PDI付属のCheetahを使用するプログラム({\tt xpdi\_moea\_cheetah})です。
+
+\vspace{12pt}
+\textbf{(6-i) \texttt{<randSeed>}ノード}
+
+\texttt{<randSeed>}ノードは、MOEA計算における乱数の種を記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<randSeed>}乱数の種\texttt{</randSeed>}
+
+\vspace{8pt}
+\leftskip=0pt
+乱数の種は0.0 〜 1.0の実数で指定します。
+負値が指定された場合は自動で指定されます。
+
+\texttt{<randSeed>}ノードの記述を省略した場合のデフォルト値は-1.0です。
+
+\vspace{12pt}
+\textbf{(6-j) \texttt{<crossoverRate>}ノード}
+
+\texttt{<crossoverRate>}ノードは、MOEA計算における交叉率を記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<crossoverRate>}交叉率\texttt{</crossoverRate>}
+
+\vspace{8pt}
+\leftskip=0pt
+交叉率は0.0 〜 1.0の実数で指定します。
+
+\texttt{<crossoverRate>}ノードの記述を省略した場合のデフォルト値は0.9です。
+
+\vspace{12pt}
+\textbf{(6-k) \texttt{<mutationRate>}ノード}
+
+\texttt{<mutationRate>}ノードは、MOEA計算における突然変異率を記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<mutationRate>}突然変異率\texttt{</mutationRate>}
+
+\vspace{8pt}
+\leftskip=0pt
+突然変異率は0.0 〜 1.0の実数で指定します。
+
+\texttt{<mutationRate>}ノードの記述を省略した場合のデフォルト値は$(1.0 / 設計変数個数)$です。
+
+\vspace{12pt}
+\textbf{(6-l) \texttt{<etaCrossover>}ノード}
+
+\texttt{<etaCrossover>}ノードは、MOEA計算における交叉のdistribution indexを記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<etaCrossover>}distribution index\texttt{</etaCrossover>}
+
+\vspace{8pt}
+\leftskip=0pt
+distribution indexは5 〜 40の整数で指定します。
+
+\texttt{<etaCrossover>}ノードの記述を省略した場合のデフォルト値は25です。
+
+\vspace{12pt}
+\textbf{(6-m) \texttt{<etaMutation>}ノード}
+
+\texttt{<etaMutation>}ノードは、MOEA計算における突然変異のdistribution indexを記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<etaMutation>}distribution index\texttt{</etaMutation>}
+
+\vspace{8pt}
+\leftskip=0pt
+distribution indexは5 〜 50の整数で指定します。
+
+\texttt{<etaMutation>}ノードの記述を省略した場合のデフォルト値は20です。
+
+\vspace{12pt}
+\textbf{(6-n) \texttt{<history>}ノード}
+
+\texttt{<history>}ノードは、MOEA計算において全評価個体の履歴ファイル({\tt interface/history.txt})を作成するかどうかを記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<history> True \textbar{} False </history>}
+
+\vspace{8pt}
+\leftskip=0pt
+Trueの場合、履歴ファイルを作成します。
+
+\texttt{<history>}ノードの記述を省略した場合のデフォルト値はFalseです。
+
+\vspace{12pt}
+\textbf{(6-o) \texttt{<duplicate>}ノード}
+
+\texttt{<duplicate>}ノードは、MOEA計算において重複する設計点を作成するかどうかを記述するノードです。
+
+\vspace{8pt}
+\leftskip=12pt
+\textbf{[記述形式]}
+
+\leftskip=42pt
+\texttt{<duplicate> True \textbar{} False </duplicate>}
+
+\vspace{8pt}
+\leftskip=0pt
+Trueの場合、重複する設計点を作成します。
+
+\texttt{<duplicate>}ノードの記述を省略した場合のデフォルト値はFalseです。
+
 
 \vspace{12pt}
 \textbf{(7) PDI設定情報}
@@ -1154,7 +1447,7 @@ generator プログラムの実行パスは、絶対パスか、ケースディ�
 \texttt{<snapshot>}    
 
 \parindent=14pt
-[サブノード群]
+\{サブノード群\}
 
 \parindent=0pt
 \texttt{</snapshot>}
@@ -1198,19 +1491,30 @@ generator プログラムの実行パスは、絶対パスか、ケースディ�
 テンプレートファイルのパスは絶対パスか、ケースディレクトリからの相対パスで指定します。
 \texttt{<templ\_path>}ノードは\texttt{<snapshot>}ノード配下に複数記述することができます。
 
-
+\newpage
 \subsection{ソルバ入力パラメータテンプレートファイル}
 
 ソルバ入力パラメータテンプレートファイルは、ソルバ入力パラメータファイルの雛形であり、PDIで設定されたパラメータ値を埋め込むためのマクロ記述を含むものです。
 
-以下に、テンプレートファイル中ののマクロ記述形式を示します。
+以下に、テンプレートファイル中のマクロ記述形式を示します。
+
 \begin{quote}
+(一次変換式)
+
 {\tt \%パラメータ名[！デフォルト値] [＊数値1] [＋数値2]\%}
+
+\medskip
+(Python式)
+
+{\tt \%パラメータ名[！デフォルト値] [：式(VAL)]\%}
 \end{quote}
 
 PDIによる入力パラメータファイル生成時に、「{\tt \%パラメータ名\%}」はPDI上で設定されたパラメータ値に置き換えられます。
 
 ここで、「パラメータ名」はパラメータ定義ファイルの\texttt{<param>}ノードの名前({\tt name}属性値)で、デフォルト値はパラメータ定義ファイル中に{\tt name}属性が「パラメータ名」である\texttt{<param>}ノードが存在しない場合のパラメータ値です。デフォルト値は(「{\tt !}」を含めて)記述を省略することができます。
+
+\medskip
+{\bf (一次変換式)}
 
 パラメータ項目のタイプが\texttt{"int"}または\texttt{"real"}の場合には、マクロ中に「演算子」と数値を記述することができます。これは、PDI上で設定されたパラメータ値に対して一次変換を適用した結果を入力パラメータファイルに記述するためのもので、省略が可能です。入力パラメータファイルに記述される最終的な値は、以下のようになります。
 
@@ -1220,24 +1524,31 @@ PDIによる入力パラメータファイル生成時に、「{\tt \%パラメ�
 
 パラメータ項目のタイプが\texttt{"bool"}の場合にも、マクロ中に「演算子」と数値を記述することができます。この場合、「数値1」部分はパラメータ値がTrueの場合の記述文字列、「数値2」部分はパラメータ値が{\tt False}の場合の記述文字列と解釈され、省略時にはそれぞれ\texttt{"True"}, \texttt{"False"}になります。
 
+\medskip
+{\bf (Python式)}
 
-\subsection{{\large{}スコアファイル}}
+マクロ記述中に「：」が含まれる場合、「：」以降の部分について「VAL」をPDI上で設定されたパラメータ値とするPython形式の計算式として評価し、マクロ記述と置き換えます。
 
-スコアファイルは、パラメータサーベイにおける各サブケースの評価値を格納するテキストファイルで、各サブケースディレクトリに以下に示す形式で作成されます。
-\begin{tt}
 \begin{quote}
-\# コメント
+[マクロ展開例]
 
-123.456
+\begin{description}
+\item[マクロ記述] {\ }\\
+{\tt Nu = \%Reynolds ! 10 : 0.1 * 1.0 / VAL\%}
+
+\item[PDI上での設定値] {\ }\\
+パラメータ名=''Reynolds''、値=100.0
+
+\item[Python式の値]  {\ }\\
+$0.1 \times 1.0 \slash 100.0 = 0.001$
+
+\item[最終的な記述]  {\ }\\
+{\tt Nu = 0.001}
+\end{description}
 \end{quote}
-\end{tt}
-
-行頭が「{\tt \#}」である行はコメントとして無視します。
-
-評価値は単一の実数値であり、コメント行を除く最初の行に記述された最初の実数値が評価値として扱われます。評価値はパラメータサーベイにおける、ある指標を表すものであり、この数値の優劣の解釈はgeneratorプログラムおよびjob 
-suspenderプログラムによって異なります。HPC/PFシステムとしては、評価値について優劣の規定(大きい値が優れている、等)は行いません。
 
 
+\newpage
 \subsection{{\large{}パラメータリストファイル}}
 
 パラメータリストファイルは、現在実行されているパラメータスイープのパラメータ値およびスコアファイルのパスを記述したファイルです。以下に示す情報が格納されたCSV形式のテキストファイルで、デフォルトでは「{\tt ケースディレクトリ/param\_list.csv}」に置かれます。
@@ -1260,64 +1571,176 @@ suspenderプログラムによって異なります。HPC/PFシステムとし�
 
 ３行目以降には、各サブケース毎のスコアファイル名(サブケースディレクトリ名/スコアファイル名)と、そのサブケースにおけるパラメータ値({\tt N個})が記述されます。
 
+
 \newpage
-\renewcommand{\thesection}{\Alph{section}}
-\setcounter{section}{0}
+%\renewcommand{\thesection}{\Alph{section}}
+%\setcounter{section}{0}
 \section{外部プログラムの形式}
 
-\subsection{generatorプログラム}
+\subsection{evaluatorプログラム}
 
-generatorプログラムは、パラメータサーベイにおける各サブケースの評価値を解釈し、次の世代のパラメータスイープ用のパラメータセットを生成するプログラムです。
+CheetahによるMOEA計算は、制約条件値が負値にならない条件下で目的関数値を最小化する最適化問題を扱います。
 
-HPC/PFシステムではgeneratorプログラムのインターフェースのみを定義します。使用者は下記の仕様に則ってgeneratorプログラムを実装する必要があります。
+evaluatorは、MOEA計算において各サブケースの解析結果から目的関数および制約条件の値を計算し、ファイルに出力するプログラムで、MOEA計算実行スクリプトから呼び出されます。
 
-\begin{description}
-\item[コマンドライン形式] {\ }\\
-\textit{generatorプログラムファイル} {\tt [-x case\_directory] [-l param\_list.csv]}\\
-
-\item[引数説明] {\ }\\
-\begin{description}
-\item[{\tt -x  case\_directory}] ケースディレクトリ指定\\
-指定されると、generatorプログラムは起動時に、{\tt case\_directory}にカレントワーキングディレクトリを移動します。指定が省略された場合は、起動されたディレクトリとなります。
-
-\item[{\tt -l  param\_list.csv}] パラメータリストファイルの指定\\
-パラメータリストファイルのパスを指定します。絶対パスか、ケースディレクトリからの相対パスで指定します。省略時は、{\tt ケースディレクトリ/param\_list.csv}を指定したとみなされます。
-\end{description}
-
-\item[戻り値(終了ステータス)] {\ }\\
-\ 1 正常終了(次世代のパラメータスイープを実行する)
-
-\ 0 正常終了(次世代のパラメータスイープを実行しない)
-
--1 異常終了
-\end{description}
-
-\subsection{{\large{}job suspenderプログラム}}
-
-job suspenderプログラムは、単一世代のパラメータスイープにおいて、既に実行が終了したサブケースジョブの結果から、実行する必要のないサブケースジョブの抽出と、そのサブケースジョブのキャンセルを行うプログラムです。
-
-HPC/PFシステムではjob suspenderプログラムのインターフェースのみを定義します。使用者は、下記の仕様に則ってjob suspenderプログラムを実装する必要があります。
+HPC/PFシステムではevaluatorプログラムのインターフェースのみを定義します。使用者は下記の仕様に則って、evaluatorプログラムを最適化問題毎に実装する必要があります。
 
 \begin{description}
 \item[コマンドライン形式] {\ }\\
-\textit{job suspenderプログラムファイル} {\tt [-x case\_directory] [-l param\_list.csv]}\\
+\textit{evaluator} {\tt [-x case\_dir] [-w wkd\_base]}\\
+\ \ \ \ {\tt [-t tm\_start] [-T tm\_end] [-i interface\_dir] [-p population]}\\
+\ \ \ \ {\tt [-O | -C]}
 
-\item[引数説明] {\ }\\
+\item[引数説明] {\ }\par
 \begin{description}
-\item[{\tt -x  case\_directory}] ケースディレクトリ指定\\
-指定されると、generatorプログラムは起動時に、{\tt case\_directory}にカレントワーキングディレクトリを移動します。指定が省略された場合は、起動されたディレクトリとなります。
+\item[{\tt -x  case\_dir}] ケースディレクトリ指定\\
+ケースディレクトリを指定します。指定が省略された場合は、カレントワーキングディレクトリがケースディレクトリとなります。\\
 
-\item[{\tt -l  param\_list.csv}] パラメータリストファイルの指定\\
-パラメータリストファイルのパスを指定します。絶対パスか、ケースディレクトリからの相対パスで指定します。省略時は、{\tt ケースディレクトリ/param\_list.csv}を指定したとみなされます。
+\item[{\tt -w  wkd\_base}] サブケースディレクトリのベース部分の指定\\
+各サブケースディレクトリのベース部分(共通部分)を指定します。サブケースディレクトリは、「ケースディレクトリ/ベース部分\_数字」の形式で存在するものと想定されます。省略時は、「{\tt job}」が指定されたものとみなされます。\\
+
+\item[{\tt -t  tm\_start}] 評価対象の開始時刻指定
+\item[{\tt -T  tm\_end}] 評価対象の終了時刻指定\\
+evaluatorがサブケース毎の解析結果を評価する際に、評価の対象とする時刻範囲を実数値で指定します。省略時は、開始時刻は0.0、終了時刻は最終時刻となります。\\
+
+\item[{\tt -i  interface\_dir}] MOEAの作業用ディレクトリ指定\\
+evaluatorとoptimizerがデータを受け渡すための作業用ディレクトリを、ケースディレクトリからの相対パス、または絶対パスで指定します。省略時は「{\tt interface}」となります。
+
+evaluatorプログラムは、目的関数の評価結果を{\tt interface\_dir/pop\_objs\_eval.txt}というテキストファイルに、1行1個体の目的関数値を空白またはタブ区切りで出力する必要があります。また、evaluatorプログラムは、制約条件の評価結果を{\tt interface\_dir/pop\_cons\_eval.txt}というテキストファイルに、1行1個体の制約条件値を空白またはタブ区切りで出力する必要があります。\\
+
+\item[{\tt -p  population}] MOEAの個体数指定\\
+MOEA計算における個体数を1以上の4の倍数の整数で指定します。省略時は、「{\tt -w}」で指定したサブケースディレクトリのベース部分を含むディレクトリの数となります。
+
+尚、このオプションで指定された個体数と、ケースディレクトリ配下のサブケースディレクトリのベース部分を含むディレクトリの数が一致しない場合はエラーとなります。\\
+
+\item[{\tt -O}] 目的関数の数を返す\\
+このevaluatorが評価する目的関数の数(1以上の整数値)を標準出力に出力して終了します。\\
+
+\item[{\tt -C}] 制約条件の数を返す\\
+このevaluatorが評価する制約条件の数(整数値)を標準出力に出力して終了します。制約条件が無い場合は0を出力します。\\
+
+\end{description}
+
+
+\item[戻り値(終了ステータス)] {\ }\\
+0 \ \ \ \ \ \ \ 正常終了
+
+0以外 \ 異常終了
+\end{description}
+
+
+\newpage
+\subsection{optimizerプログラム}
+
+optimizerは、MOEA計算において目的関数および制約条件の値から、次の世代の設計変数を進化計算によって求めるプログラムで、MOEA計算実行スクリプトから呼び出されます。
+
+HPC/PFシステムではoptimizerプログラムのインターフェースを定義しています。使用者は、下記の仕様に則ってoptimizerプログラムを実装することができます。
+
+\begin{description}
+\item[コマンドライン形式] {\ }\\
+\textit{optimizer} {\tt [-x case\_dir] [-i interface\_dir]}\\
+\ \ \ \ {\tt -p population \ -c cur\_gen \ -n max\_gen \ [-m moea\_comm]}\\
+\ \ \ \ {\tt [--cfg-moea=moea\_cfg] [--cfg-mop=mop\_cfg] [-s rand\_seed]}\\
+\ \ \ \ {\tt [--nohistory] [--noduplicate]}
+
+
+\item[引数説明] {\ }\par
+\begin{description}
+\item[{\tt -x  case\_dir}] ケースディレクトリ指定\\
+ケースディレクトリを指定します。指定が省略された場合は、カレントワーキングディレクトリがケースディレクトリとなります。\\
+
+\item[{\tt -i  interface\_dir}] MOEAの作業用ディレクトリ指定\\
+evaluatorとoptimizerがデータを受け渡すための作業用ディレクトリを、ケースディレクトリからの相対パス、または絶対パスで指定します。省略時は「{\tt interface}」となります。
+
+optimizerプログラムは、目的関数および制約条件の評価結果を{\tt interface\_dir/ [pop\_objs\_eval.txt, pop\_cons\_eval.txt]}というテキストファイルから入力し、生成した次世代の設計変数を{\tt interface\_dir/pop\_vars\_eval.txt}というテキストファイルに、1行1個体の設計変数値を空白またはタブ区切りで出力する必要があります。\\
+
+\item[{\tt -p  population}] MOEAの個体数指定\\
+MOEA計算における個体数を1以上の4の倍数の整数で指定します。この指定は省略できません。\\
+
+\item[{\tt -c cur\_gen}] MOEA計算の世代番号\\
+MOEA計算における現在の世代番号を0以上の整数で指定します。この指定は省略できません。\\
+
+\item[{\tt -n max\_gen}] MOEA計算の最大世代番号\\
+MOEA計算における最大世代番号を1以上の整数で指定します。この指定は省略できません。\\
+
+\item[{\tt -m moea\_comm}] 進化計算プログラムのパス\\
+optimizerプログラムが内部的に使用する進化計算プログラムのパスを指定します。省略時にはデフォルトの進化計算プログラムを使用します。
+
+\item[{\tt --cfg-moea=moea\_cfg}] 進化計算設定ファイルのパス\\
+optimizerプログラムが内部的に使用する進化計算プログラムの設定ファイルのパスを指定します。省略時には{\tt cfg/moea.cfg}となります。\\
+
+\item[{\tt --cfg-mop=mop\_cfg}] 最適化問題設定ファイルのパス\\
+optimizerプログラムが内部的に使用する進化計算プログラムが参照する最適化問題設定ファイルのパスを指定します。省略時には{\tt cfg/mop.cfg}となります。\\
+
+\item[{\tt -n rand\_seed}] 乱数の種\\
+乱数の種を0.0 〜 1.0の実数で指定します。省略時には自動的に設定されます。\\
+
+\item[{\tt --nohistory}] historyファイルを作らない\\
+このオプションを指定すると、全評価個体の履歴ファイル({\tt interface/history.txt})を作成しません。\\
+
+\item[{\tt --noduplicate}] 重複する設計点を作らない\\
+このオプションを指定すると、重複する設計点を作成しません。\\
+
 \end{description}
 
 \item[戻り値(終了ステータス)] {\ }\\
-0 正常終了
+0 \ \ \ \ \ \ \ 正常終了
 
-0以外 異常終了
+0以外 \ 異常終了
 \end{description}
 
-job suspenderプログラムが参照するパラメータリストファイルは、generatorプログラムが参照するものと同じです(前章を参照)。ただし、generatorプログラムの場合と異なり、job suspenderプログラムの実行時は現在の世代のパラメータスイープが実行中であり、パラメータリストファイルに記述されているスコアファイルが存在しないサブケースジョブがある点に留意が必要です。
+PDIシステムでは、上記の仕様に従い、内部的にCheetahを使用するoptimizerプログラムとして{\tt xpdi\_moea\_cheetah}を提供しています。
 
+{\tt xpdi\_moea\_cheetah}は、PDIと同じディレクトリに存在しています。
+{\tt xpdi\_moea\_cheetah}では、「{\tt -m}」オプション指定を省略するとCheetahを進化計算プログラムとして使用するように実装されています。
+
+
+\newpage
+\subsection{xpdi\_genparamプログラム}
+
+{\tt xpdi\_genparam}は、設計変数記述テキストファイル({\tt interface\_dir/pop\_vars\_eval.txt})を入力し、パラメータ記述XMLファイルとソルバー入力テンプレートファイルを参照して、各サブケースディレクトリ配下にソルバー入力パラメータファイルを生成するプログラムで、MOEA計算実行スクリプトファイル中から内部的に呼び出されます。
+
+以下に{\tt xpdi\_genparam}プログラムの仕様を示します。
+
+\begin{description}
+\item[コマンドライン形式] {\ }\\
+{\tt xpdi\_genparam \ [-x case\_dir] [-i interface\_dir] [-f paramfile\_pat]}\\
+\ \ \ \ {\tt -d desc\_file \ [-t tmpl\_file]+ [-p param\_name]+}
+
+
+\item[引数説明] {\ }\par
+\begin{description}
+\item[{\tt -x  case\_dir}] ケースディレクトリ指定\\
+ケースディレクトリを指定します。指定が省略された場合は、カレントワーキングディレクトリがケースディレクトリとなります。\\
+
+\item[{\tt -i  interface\_dir}] MOEAの作業用ディレクトリ指定\\
+{\tt pop\_vars\_eval.txt}ファイルが存在するディレクトリを、ケースディレクトリからの相対パス、または絶対パスで指定します。省略時は「{\tt interface}」となります。\\
+
+\item[{\tt -f  paramfile\_pat}] ソルバー入力パラメータファイル名のパターン指定\\
+各サブケースディレクトリ配下に生成される、ソルバー入力パラメータファイルのファイル名パターンを指定します。省略時は「{\tt \%T}」となり、ソルバー入力テンプレートファイル名から末尾の{\tt ".template", ".tmpl", ".tmp", ".tpl"}を除いたものになります。
+
+ファイル名のパターン指定の詳細については、「2.3 パラメータサーべイ方式設定機能」の「parameter file pattern」についての説明を参照して下さい。\\
+
+\item[{\tt -d  desc\_file}] パラメータ記述XMLファイル指定\\
+パラメータ記述XMLファイルのパスを指定します。絶対パスか、ケースディレクトリからの相対パスで指定します。この指定は省略できません。\\
+
+\item[{\tt -t  template\_file}] ソルバ入力パラメータテンプレートファイル指定\\
+パラメータテンプレートファイルのパスを指定します。絶対パスか、ケースディレクトリからの相対パスで指定します。複数指定が可能です。少なくとも1個以上の指定が必要です。\\
+
+\item[{\tt -p param\_name}] パラメータ名の指定\\
+設計変数として使用するパラメータ名指定します。複数指定が可能です。少なくとも1個以上の指定が必要です。\\
+
+\end{description}
+
+\item[戻り値(終了ステータス)] {\ }\\
+0 \ \ \ \ \ \ \ 正常終了
+
+0以外 \ 異常終了
+\end{description}
+
+
+{\tt xpdi\_genparam}はPDIと同じディレクトリに存在しています。
+
+尚、使用者が直接{\tt xpdi\_genparam}プログラムを実行する必要も、またPDI上で{\tt xpdi\_genparam}のパスを設定する必要もありません。
 
 \end{document}

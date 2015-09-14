@@ -54,7 +54,8 @@ class ParamPage(wx.ScrolledWindow):
         layout.Add(wx.StaticText(self, wx.ID_ANY, 'value(s)'),
                    pos=(0,3), flag=wx.GROW|wx.ALL, border=self.bw)
         layout.Add(wx.StaticText(self, wx.ID_ANY,
-                                 'sweep range [start/end/delta]'),
+                                 'sweep range [start/end/delta]',
+                                 name='sweep_range_text'),
                    pos=(0,4), flag=wx.GROW|wx.ALL, border=self.bw)
         layout.Add(wx.StaticText(self, wx.ID_ANY, 'exceptional value(s)'),
                    pos=(0,5), flag=wx.GROW|wx.ALL, border=self.bw)
@@ -122,7 +123,7 @@ class ParamPage(wx.ScrolledWindow):
             xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnMinMax)
             xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnMinMax)
         layout.Add(hsizer, pos=(row, 2), flag=wx.GROW|wx.ALL, border=self.bw)
-        # col3 values
+        # col3 valList
         hsizer = wx.BoxSizer()
         xRadio = wx.RadioButton(self, wx.ID_ANY, name=param.name +':useValue',
                                 label=' ', style=wx.RB_GROUP)
@@ -133,19 +134,19 @@ class ParamPage(wx.ScrolledWindow):
                 param.type == Param.Type_STRING:
             xTxt = wx.TextCtrl(self, wx.ID_ANY, name=param.name +':value',
                                style=wx.TE_PROCESS_ENTER)
-            hsizer.Add(xTxt, flag=wx.GROW)
+            hsizer.Add(xTxt, 1, flag=wx.GROW)
             xTxt.SetToolTip(wx.ToolTip('values separated by space'))
             xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnValueTxt)
             xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnValueTxt)
         elif param.type == Param.Type_CHOICE:
             xChoice = wx.Choice(self, wx.ID_ANY, name=param.name +':value',
                                 choices=param.citems)
-            hsizer.Add(xChoice, flag=wx.GROW)
+            hsizer.Add(xChoice, 1, flag=wx.GROW)
             self.Bind(wx.EVT_CHOICE, self.OnValueChoice, xChoice)
         elif param.type == Param.Type_BOOL:
             xChk = wx.CheckBox(self, wx.ID_ANY, name=param.name +':value',
                                label='False', size=wx.Size(70,-1))
-            hsizer.Add(xChk, flag=wx.GROW)
+            hsizer.Add(xChk, 1, flag=wx.GROW)
             self.Bind(wx.EVT_CHECKBOX, self.OnValueChk, xChk)
         layout.Add(hsizer, pos=(row, 3), flag=wx.GROW|wx.ALL, border=self.bw)
         # col4 range
@@ -155,7 +156,7 @@ class ParamPage(wx.ScrolledWindow):
                                     name=param.name +':useRange', label=' ')
             if param.type == Param.Type_BOOL:
                 xRadio.SetLabel('  True / False')
-            xRadio.SetToolTip(wx.ToolTip('use sweep range'))
+            xRadio.SetToolTip(wx.ToolTip('use sweep/search range'))
             hsizer.Add(xRadio)
             self.Bind(wx.EVT_RADIOBUTTON, self.OnUseValueRange, xRadio)
         if param.type == Param.Type_INT or param.type == Param.Type_REAL:
@@ -226,17 +227,20 @@ class ParamPage(wx.ScrolledWindow):
             if p.disable:
                 ctl.SetForegroundColour('GRAY')
             elif p.calcCaseNum() < 1:
-                ctl.SetForegroundColour('RED')
+                if core.moeaMode and p.useRange and \
+                        p.sweepRange[0] != None and p.sweepRange[1] != None \
+                        and p.sweepRange[0] < p.sweepRange[1]:
+                    ctl.SetForegroundColour('BLACK')
+                else:
+                    ctl.SetForegroundColour('RED')
             else:
                 ctl.SetForegroundColour('BLACK')
             ctl0 = self.FindWindowByName(p.name +':useValue')
-            if p.type != Param.Type_STRING:
+            if not p.type == Param.Type_STRING:
                 ctl = self.FindWindowByName(p.name +':useRange')
                 if not ctl0 or not ctl: continue
-                if p.useRange:
-                    ctl.SetValue(True)
-                else:
-                    ctl0.SetValue(True)
+                ctl.SetValue(p.useRange)
+                ctl0.SetValue(not p.useRange)
                 ctl0.Enable(not p.disable)
                 ctl.Enable(not p.disable)
             else:
@@ -246,17 +250,17 @@ class ParamPage(wx.ScrolledWindow):
             ctl = self.FindWindowByName(p.name +':value')
             if not ctl: continue
             ctl.Enable(not p.useRange and not p.disable)
-            if p.values != []:
+            if p.valList != []:
                 if p.type == Param.Type_BOOL:
-                    ctl.SetValue(p.values[0])
-                    ctl.SetLabel(str(p.values[0]))
+                    ctl.SetValue(p.valList[0])
+                    ctl.SetLabel(str(p.valList[0]))
                 if p.type == Param.Type_STRING:
-                    ctl.SetValue(str(p.values[0]))
+                    ctl.SetValue(str(p.valList[0]))
                 if p.type == Param.Type_CHOICE:
-                    ctl.SetSelection(p.values[0])
+                    ctl.SetSelection(p.valList[0])
                 if p.type == Param.Type_INT or p.type == Param.Type_REAL:
                     vals = ''
-                    for v in p.values:
+                    for v in p.valList:
                         vals += str(v) + ' '
                     ctl.SetValue(vals)
 
@@ -295,10 +299,13 @@ class ParamPage(wx.ScrolledWindow):
 
                 ctl = self.FindWindowByName(p.name +':rangeDelta')
                 if not ctl: continue
-                if  p.sweepRange[2] == None:
-                    ctl.SetValue('none')
+                if not core.moeaMode:
+                    if p.sweepRange[2] == None:
+                        ctl.SetValue('none')
+                    else:
+                        ctl.SetValue(str(p.sweepRange[2]))
                 else:
-                    ctl.SetValue(str(p.sweepRange[2]))
+                    ctl.SetValue(str(p.arithPrec))
                 ctl.Enable(p.useRange and not p.disable)
 
                 ctl = self.FindWindowByName(p.name +':useExcept')
@@ -337,6 +344,15 @@ class ParamPage(wx.ScrolledWindow):
                 ctlx.Enable(p.useExcept and not p.disable)
 
             continue # end of for(p)
+
+        # sweep range text label
+        ctl = self.FindWindowByName('sweep_range_text')
+        if ctl:
+            if not core.moeaMode:
+                ctl.SetLabel('sweep range [start/end/delta]')
+            else:
+                ctl.SetLabel('search range [low/high/precision]')
+
         return True
 
     # event handlers
@@ -354,6 +370,7 @@ class ParamPage(wx.ScrolledWindow):
             param = core.pd.getParam(oname[0])
             if not param: return
             param.disable = not param.disable
+            param.disable_gui = param.disable
             if param.disable:
                 obj.SetForegroundColour('GRAY')
             elif param.calcCaseNum() < 1:
@@ -472,11 +489,11 @@ class ParamPage(wx.ScrolledWindow):
                         x = float(v)
                         if not x in arr and param.isValidValue(x):
                             arr.append(x)
-                param.values = arr
+                param.valList = arr
                 param.checkCascadeParam(core.pd)
                 self.Update()
             elif param.type == Param.Type_STRING:
-                param.values = [val,]
+                param.valList = [val,]
         except:
             pass
         self.Update()
@@ -497,7 +514,7 @@ class ParamPage(wx.ScrolledWindow):
             param = core.pd.getParam(oname[0])
             if not param: return
             if param.type == Param.Type_CHOICE:
-                param.values = [val,]
+                param.valList = [val,]
                 param.checkCascadeParam(core.pd)
             else:
                 return
@@ -520,7 +537,7 @@ class ParamPage(wx.ScrolledWindow):
             param = core.pd.getParam(oname[0])
             if not param: return
             if param.type == Param.Type_BOOL:
-                param.values = [val,]
+                param.valList = [val,]
                 param.checkCascadeParam(core.pd)
             else:
                 return
@@ -576,13 +593,22 @@ class ParamPage(wx.ScrolledWindow):
                 self.Update()
                 return
             elif oname[1] == 'rangeDelta':
-                if val == None:
-                    param.sweepRange[2] = None
-                    self.Update()
-                    return
-                if val <= 0:
-                    raise Exception('invalid value')
-                param.sweepRange[2] = val
+                if core.moeaMode:
+                    val = int(vstr) # arithmetic precision, be integer
+                    if val == None:
+                        self.Update()
+                        return
+                    if val < 0:
+                        raise Exception('invalid value')
+                    param.arithPrec = val
+                else:
+                    if val == None:
+                        param.sweepRange[2] = None
+                        self.Update()
+                        return
+                    if val <= 0:
+                        raise Exception('invalid value')
+                    param.sweepRange[2] = val
                 self.Update()
                 return
         except:

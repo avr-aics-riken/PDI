@@ -6,6 +6,10 @@ rem echo "%DRVNAME%%DIRNAME%"
 
 rem set PDI_LOG_FILENAME=%DRVNAME%%DIRNAME%\..\logs\pdi_%USERNAME%.log
 
-python "%DRVNAME%%DIRNAME%\..\lib\python\pdi.py" %1 %2 %3 %4 %5 %6 %7 %8
+if exist "%DRVNAME%%DIRNAME%..¥lib¥python\dist¥pdi.exe" (
+   "%DRVNAME%%DIRNAME%..\lib\python\dist¥pdi.exe" %*
+) else (
+  python -B "%DRVNAME%%DIRNAME%..\lib\python\pdi.py" %*
+)
 
 rem pause

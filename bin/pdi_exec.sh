@@ -29,4 +29,4 @@ export VERSIONER_PYTHON_PREFER_32_BIT=yes
 datadir=`dirname $1`
 datafile=`basename $1`
 cd "${datadir}"
-exec python ${PDI_DIR}/lib/python/pdi.py -d "${datafile}"
+exec python -B ${PDI_DIR}/lib/python/pdi.py -d "${datafile}"

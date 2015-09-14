@@ -4,7 +4,7 @@
 # HPC/PF PDIサブシステム
 # pdiコマンドインターフェース
 #
-# copyright (c) 2011-2014 IIS, Tokyo Univ., Japan
+# copyright (c) 2011-2013 IIS, Tokyo Univ., Japan
 #
 
 if [ "x${HPCPF_HOME}" == "x" ]; then
@@ -19,14 +19,5 @@ PDI_DIR=`dirname "$dir0"`
 export PYTHONPATH=${PDI_DIR}/lib/python:$PYTHONPATH
 
 comm=`basename $0`
-
-# for MacOSX wxCarbon
-if [ x"${comm}" == "xpdi32" ]; then
-  echo 'pdi32: exec pdi via 32bit python.'
-  export VERSIONER_PYTHON_PREFER_32_BIT=yes
-  comm="pdi"
-fi
-
-# invoke pdi
-exec python ${PDI_DIR}/lib/python/${comm}.py $*
+exec python -B ${PDI_DIR}/lib/python/${comm}.py $*
 

@@ -44,26 +44,65 @@ class SurveyPage(wx.ScrolledWindow):
         # create GridBagSizer (L x 6)
         layout = wx.GridBagSizer()
 
+        # survey type radio
+        xRadio = wx.RadioButton(self, wx.ID_ANY, name='survey_simple',
+                                label='Simple param survey',
+                                style=wx.RB_GROUP)
+        xRadio.SetToolTip(wx.ToolTip('select simple parameter survey'))
+        layout.Add(xRadio, pos=(0, 0), flag=wx.GROW|wx.ALL, border=self.bw)
+        self.Bind(wx.EVT_RADIOBUTTON, self.OnSurveyType, xRadio)
+
+        xRadio = wx.RadioButton(self, wx.ID_ANY, name='survey_moea',
+                                label='MOEA param survey')
+        xRadio.SetToolTip(wx.ToolTip('select MOEA parameter survey'))
+        layout.Add(xRadio, pos=(0, 3), flag=wx.GROW|wx.ALL, border=self.bw)
+        self.Bind(wx.EVT_RADIOBUTTON, self.OnSurveyType, xRadio)
+
+        sTxt = wx.StaticText(self, wx.ID_ANY, '  /  ')
+        layout.Add(sTxt, pos=(0, 2), flag=wx.GROW|wx.ALL, border=self.bw)
+
+        # left hand side
+        row = 1
+
         # total subcase number
-        layout.Add(wx.StaticText(self, wx.ID_ANY, 'Total subcase number'),
-                   pos=(0, 0), flag=wx.GROW|wx.ALL, border=self.bw)
+        sTxt = wx.StaticText(self, wx.ID_ANY, 'total subcase number')
+        layout.Add(sTxt, pos=(row, 0), flag=wx.GROW|wx.ALL, border=self.bw)
+        xtt = wx.ToolTip(u'パラメータスイープの総ケースを表示します'
+                         u'(READ ONLY)')
+        sTxt.SetToolTip(xtt)
         xTxt = wx.TextCtrl(self, wx.ID_ANY, '1', name='totalCaseNum',
                            style=wx.TE_READONLY)
-        layout.Add(xTxt, pos=(0, 1), flag=wx.GROW|wx.ALL, border=self.bw)
+        layout.Add(xTxt, pos=(row, 1), flag=wx.GROW|wx.ALL, border=self.bw)
+        row += 1
 
         # subcase directory number
         sTxt = wx.StaticText(self, wx.ID_ANY, '  subcase directory number')
         xtt = wx.ToolTip(u'作成するサブケースディレクトリ数を設定します')
         sTxt.SetToolTip(xtt)
-        layout.Add(sTxt, pos=(1, 0), flag=wx.GROW|wx.ALL, border=self.bw)
+        layout.Add(sTxt, pos=(row, 0), flag=wx.GROW|wx.ALL, border=self.bw)
         xTxt = wx.TextCtrl(self, wx.ID_ANY, '1', name='wdNum',
                            style=wx.TE_PROCESS_ENTER)
-        layout.Add(xTxt, pos=(1, 1), flag=wx.GROW|wx.ALL, border=self.bw)
+        layout.Add(xTxt, pos=(row, 1), flag=wx.GROW|wx.ALL, border=self.bw)
         xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnWdNum)
         xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnWdNum)
+        row += 1
+
+        # subcases per directory
+        sTxt = wx.StaticText(self, wx.ID_ANY, '  subcases per directory')
+        xtt = wx.ToolTip(u'1サブケースディレクトリ当りの'
+                         u'サブケース数を設定します')
+        sTxt.SetToolTip(xtt)
+        layout.Add(sTxt, pos=(row, 0), flag=wx.GROW|wx.ALL, border=self.bw)
+        xTxt = wx.TextCtrl(self, wx.ID_ANY, '1', name='casesPerDir',
+                           style=wx.TE_PROCESS_ENTER)
+        layout.Add(xTxt, pos=(row, 1), flag=wx.GROW|wx.ALL, border=self.bw)
+        xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnCasesPerDir)
+        xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnCasesPerDir)
+        row += 1
+        row += 1
 
         # work directory pattern
-        sTxt = wx.StaticText(self, wx.ID_ANY,'  subcase directory pattern')
+        sTxt = wx.StaticText(self, wx.ID_ANY,'subcase directory pattern')
         xtt = wx.ToolTip(u'サブケースディレクトリパターンを設定します\n'
                          u'パターン中の以下の文字列は置換されます\n'
                          u'   %P  ->  "_" + パラメータ値の並び\n'
@@ -71,27 +110,16 @@ class SurveyPage(wx.ScrolledWindow):
                          u'   #D  ->  "_" + サブケースディレクトリ通番\n'
                          u'   #J  ->  "_" + サブケース通番')
         sTxt.SetToolTip(xtt)
-        layout.Add(sTxt, pos=(1, 3), flag=wx.GROW|wx.ALL, border=self.bw)
+        layout.Add(sTxt, pos=(row, 0), flag=wx.GROW|wx.ALL, border=self.bw)
         xTxt = wx.TextCtrl(self, wx.ID_ANY, name='wdPattern',
                            style=wx.TE_PROCESS_ENTER)
-        layout.Add(xTxt, pos=(1, 4), flag=wx.GROW|wx.ALL, border=self.bw)
+        layout.Add(xTxt, pos=(row, 1), flag=wx.GROW|wx.ALL, border=self.bw)
         xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnWdPattern)
         xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnWdPattern)
-
-        # subcases per directory
-        sTxt = wx.StaticText(self, wx.ID_ANY, '  subcases per directory')
-        xtt = wx.ToolTip(u'1サブケースディレクトリ当りの'
-                         u'サブケース数を設定します')
-        sTxt.SetToolTip(xtt)
-        layout.Add(sTxt, pos=(2, 0), flag=wx.GROW|wx.ALL, border=self.bw)
-        xTxt = wx.TextCtrl(self, wx.ID_ANY, '1', name='casesPerDir',
-                           style=wx.TE_PROCESS_ENTER)
-        layout.Add(xTxt, pos=(2, 1), flag=wx.GROW|wx.ALL, border=self.bw)
-        xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnCasesPerDir)
-        xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnCasesPerDir)
+        row += 1
 
         # parameter file pattern
-        sTxt = wx.StaticText(self, wx.ID_ANY, '  parameter file pattern')
+        sTxt = wx.StaticText(self, wx.ID_ANY, 'parameter file pattern')
         xtt = wx.ToolTip(u'パラメータファイル名パターンを設定します\n'
                          u'パターン中の以下の文字列は置換されます\n'
                          u'   %T  ->  テンプレートファイルのベース名\n'
@@ -100,68 +128,161 @@ class SurveyPage(wx.ScrolledWindow):
                          u'   #T  ->  "_" + テンプレートファイル番号\n'
                          u'   #S  ->  "_" + 1ディレクトリ内サブケース番号')
         sTxt.SetToolTip(xtt)
-        layout.Add(sTxt, pos=(2, 3), flag=wx.GROW|wx.ALL, border=self.bw)
+        layout.Add(sTxt, pos=(row, 0), flag=wx.GROW|wx.ALL, border=self.bw)
         xTxt = wx.TextCtrl(self, wx.ID_ANY, name='pfPattern',
                            style=wx.TE_PROCESS_ENTER)
-        layout.Add(xTxt, pos=(2, 4), flag=wx.GROW|wx.ALL, border=self.bw)
+        layout.Add(xTxt, pos=(row, 1), flag=wx.GROW|wx.ALL, border=self.bw)
         xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnPfPattern)
         xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnPfPattern)
+        row += 1
 
-        # enable job suspender
-        xChk = wx.CheckBox(self, wx.ID_ANY, name='enableSuspender',
-                           label='enable job suspender')
-        layout.Add(xChk, pos=(3, 0), span=(1, 2), flag=wx.GROW|wx.ALL,
-                   border=self.bw)
-        self.Bind(wx.EVT_CHECKBOX, self.OnEnableSuspender, xChk)
+        # right hand side
+        row = 1
 
-        # generation loop
-        xChk = wx.CheckBox(self, wx.ID_ANY, name='generationLoop',
-                           label='generation loop')
-        layout.Add(xChk, pos=(3, 3), span=(1, 2), flag=wx.GROW|wx.ALL,
-                   border=self.bw)
-        self.Bind(wx.EVT_CHECKBOX, self.OnGenerationLoop, xChk)
+        # number of variable
+        sTxt = wx.StaticText(self, wx.ID_ANY, 'design variable number')
+        layout.Add(sTxt, pos=(row, 3), flag=wx.GROW|wx.ALL, border=self.bw)
+        xtt = wx.ToolTip(u'MOEAの設計変数の数を表示します(READ ONLY)\n'
+                         u'(レンジが設定されているINT/REALパラメータ)')
+        sTxt.SetToolTip(xtt)
+        xTxt = wx.TextCtrl(self, wx.ID_ANY, '1', name='moeaVariableNum',
+                           style=wx.TE_READONLY)
+        layout.Add(xTxt, pos=(row, 4), flag=wx.GROW|wx.ALL, border=self.bw)
+        row += 1
 
-        # job suspender
-        layout.Add(wx.StaticText(self, wx.ID_ANY, '    job suspender'),
-                   pos=(4, 0), flag=wx.GROW|wx.ALL, border=self.bw)
-        xTxt = wx.TextCtrl(self, wx.ID_ANY, name='jobSuspender',
+        # population
+        sTxt = wx.StaticText(self, wx.ID_ANY, 'population')
+        layout.Add(sTxt, pos=(row, 3), flag=wx.GROW|wx.ALL, border=self.bw)
+        xtt = wx.ToolTip(u'MOEAの個体数(4の倍数)を設定します')
+        sTxt.SetToolTip(xtt)
+        xTxt = wx.TextCtrl(self, wx.ID_ANY, '1', name='population',
                            style=wx.TE_PROCESS_ENTER)
-        layout.Add(xTxt, pos=(4, 1), flag=wx.GROW|wx.ALL, border=self.bw)
-        xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnJobSuspender)
-        xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnJobSuspender)
-        xBtn = wx.Button(self, wx.ID_ANY, label='...', name='jobSuspenderBrows')
-        layout.Add(xBtn, pos=(4, 2), flag=wx.GROW|wx.ALL, border=self.bw)
-        self.Bind(wx.EVT_BUTTON, self.OnJobSuspenderBrows, xBtn)
+        layout.Add(xTxt, pos=(row, 4), flag=wx.GROW|wx.ALL, border=self.bw)
+        xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnPopulation)
+        xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnPopulation)
+        row += 1
 
         # max generation
-        layout.Add(wx.StaticText(self, wx.ID_ANY, '    max generation'),
-                   pos=(4, 3), flag=wx.GROW|wx.ALL, border=self.bw)
+        sTxt = wx.StaticText(self, wx.ID_ANY, 'max generation')
+        layout.Add(sTxt, pos=(row, 3), flag=wx.GROW|wx.ALL, border=self.bw)
+        xtt = wx.ToolTip(u'MOEAの最大世代値を設定します')
+        sTxt.SetToolTip(xtt)
         xTxt = wx.TextCtrl(self, wx.ID_ANY, '1', name='maxGeneration',
                            style=wx.TE_PROCESS_ENTER)
-        layout.Add(xTxt, pos=(4, 4), flag=wx.GROW|wx.ALL, border=self.bw)
+        layout.Add(xTxt, pos=(row, 4), flag=wx.GROW|wx.ALL, border=self.bw)
         xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnMaxGeneration)
         xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnMaxGeneration)
+        row += 1
 
-        # generator
-        layout.Add(wx.StaticText(self, wx.ID_ANY, '    generator'),
-                   pos=(5, 3), flag=wx.GROW|wx.ALL, border=self.bw)
-        xTxt = wx.TextCtrl(self, wx.ID_ANY, name='generator',
+        # evaluator path
+        sTxt = wx.StaticText(self, wx.ID_ANY, 'evaluator path')
+        layout.Add(sTxt, pos=(row, 3), flag=wx.GROW|wx.ALL, border=self.bw)
+        xtt = wx.ToolTip(u'Evaluatorプログラムのパスを設定します')
+        sTxt.SetToolTip(xtt)
+        xTxt = wx.TextCtrl(self, wx.ID_ANY, name='evaluator',
                            style=wx.TE_PROCESS_ENTER)
-        layout.Add(xTxt, pos=(5, 4), flag=wx.GROW|wx.ALL, border=self.bw)
-        xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnGenerator)
-        xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnGenerator)
-        xBtn = wx.Button(self, wx.ID_ANY, label='...', name='generatorBrows')
-        layout.Add(xBtn, pos=(5, 5), flag=wx.GROW|wx.ALL, border=self.bw)
-        self.Bind(wx.EVT_BUTTON, self.OnGeneratorBrows, xBtn)
+        layout.Add(xTxt, pos=(row, 4), flag=wx.GROW|wx.ALL, border=self.bw)
+        xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnEvaluator)
+        xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnEvaluator)
+        xBtn = wx.Button(self, wx.ID_ANY, label='...', name='evaluatorBrows',
+                         style=wx.BU_EXACTFIT)
+        layout.Add(xBtn, pos=(row, 5), flag=wx.GROW|wx.ALL, border=self.bw)
+        self.Bind(wx.EVT_BUTTON, self.OnEvaluatorBrows, xBtn)
+        row += 1
 
-        # score file pattern
-        layout.Add(wx.StaticText(self, wx.ID_ANY, '    score file pattern'),
-                   pos=(6, 3), flag=wx.GROW|wx.ALL, border=self.bw)
-        xTxt = wx.TextCtrl(self, wx.ID_ANY, name='sfPattern',
+        # optimizer path
+        sTxt = wx.StaticText(self, wx.ID_ANY, 'optimizer path')
+        layout.Add(sTxt, pos=(row, 3), flag=wx.GROW|wx.ALL, border=self.bw)
+        xtt = wx.ToolTip(u'Optimizerプログラムのパスを設定します')
+        sTxt.SetToolTip(xtt)
+        xTxt = wx.TextCtrl(self, wx.ID_ANY, name='optimizer',
                            style=wx.TE_PROCESS_ENTER)
-        layout.Add(xTxt, pos=(6, 4), flag=wx.GROW|wx.ALL, border=self.bw)
-        xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnSfPattern)
-        xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnSfPattern)
+        layout.Add(xTxt, pos=(row, 4), flag=wx.GROW|wx.ALL, border=self.bw)
+        xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnOptimizer)
+        xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnOptimizer)
+        xBtn = wx.Button(self, wx.ID_ANY, label='...', name='optimizerBrows',
+                         style=wx.BU_EXACTFIT)
+        layout.Add(xBtn, pos=(row, 5), flag=wx.GROW|wx.ALL, border=self.bw)
+        self.Bind(wx.EVT_BUTTON, self.OnOptimizerBrows, xBtn)
+        row += 1
+
+        # random seed
+        sTxt = wx.StaticText(self, wx.ID_ANY, 'random seed')
+        layout.Add(sTxt, pos=(row, 3), flag=wx.GROW|wx.ALL, border=self.bw)
+        xtt = wx.ToolTip(u'乱数シードの値を設定します(0.0～1.0)\n'
+                         u'(負値の場合は自動生成)')
+        sTxt.SetToolTip(xtt)
+        xTxt = wx.TextCtrl(self, wx.ID_ANY, name='randSeed',
+                           style=wx.TE_PROCESS_ENTER)
+        layout.Add(xTxt, pos=(row, 4), flag=wx.GROW|wx.ALL, border=self.bw)
+        xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnRandSeed)
+        xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnRandSeed)
+        row += 1
+
+        # crossover rate
+        sTxt = wx.StaticText(self, wx.ID_ANY, 'crossover rate')
+        layout.Add(sTxt, pos=(row, 3), flag=wx.GROW|wx.ALL, border=self.bw)
+        xtt = wx.ToolTip(u'交叉率を設定します(0.0～1.0)')
+        sTxt.SetToolTip(xtt)
+        xTxt = wx.TextCtrl(self, wx.ID_ANY, name='crossoverRate',
+                           style=wx.TE_PROCESS_ENTER)
+        layout.Add(xTxt, pos=(row, 4), flag=wx.GROW|wx.ALL, border=self.bw)
+        xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnCrossoverRate)
+        xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnCrossoverRate)
+        row += 1
+
+        # mutation rate
+        sTxt = wx.StaticText(self, wx.ID_ANY, 'mutation rate')
+        layout.Add(sTxt, pos=(row, 3), flag=wx.GROW|wx.ALL, border=self.bw)
+        xtt = wx.ToolTip(u'突然変異率を設定します(0.0～1.0)\n'
+                         u'(負値の場合は1.0/設計変数個数)')
+        sTxt.SetToolTip(xtt)
+        xTxt = wx.TextCtrl(self, wx.ID_ANY, name='mutationRate',
+                           style=wx.TE_PROCESS_ENTER)
+        layout.Add(xTxt, pos=(row, 4), flag=wx.GROW|wx.ALL, border=self.bw)
+        xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnMutationRate)
+        xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnMutationRate)
+        row += 1
+        
+        # eta crossover
+        sTxt = wx.StaticText(self, wx.ID_ANY, 'eta crossover')
+        layout.Add(sTxt, pos=(row, 3), flag=wx.GROW|wx.ALL, border=self.bw)
+        xtt = wx.ToolTip(u'交叉のdistribution index(5～40)')
+        sTxt.SetToolTip(xtt)
+        xTxt = wx.TextCtrl(self, wx.ID_ANY, name='etaCrossover',
+                           style=wx.TE_PROCESS_ENTER)
+        layout.Add(xTxt, pos=(row, 4), flag=wx.GROW|wx.ALL, border=self.bw)
+        xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnEtaCrossover)
+        xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnEtaCrossover)
+        row += 1
+
+        # eta mutation
+        sTxt = wx.StaticText(self, wx.ID_ANY, 'eta mutation')
+        layout.Add(sTxt, pos=(row, 3), flag=wx.GROW|wx.ALL, border=self.bw)
+        xtt = wx.ToolTip(u'突然変異のdistribution index(5～50)')
+        sTxt.SetToolTip(xtt)
+        xTxt = wx.TextCtrl(self, wx.ID_ANY, name='etaMutation',
+                           style=wx.TE_PROCESS_ENTER)
+        layout.Add(xTxt, pos=(row, 4), flag=wx.GROW|wx.ALL, border=self.bw)
+        xTxt.Bind(wx.EVT_TEXT_ENTER, self.OnEtaMutation)
+        xTxt.Bind(wx.EVT_KILL_FOCUS, self.OnEtaMutation)
+        row += 1
+
+        # history / duplicate
+        hsizer = wx.BoxSizer()
+        xChk = wx.CheckBox(self, wx.ID_ANY, name='history',
+                           label='history')
+        xtt = wx.ToolTip(u'history.txt(全評価個体の履歴)を作成するか')
+        xChk.SetToolTip(xtt)
+        self.Bind(wx.EVT_CHECKBOX, self.OnChecks, xChk)
+        hsizer.Add(xChk, 1, flag=wx.GROW)
+        xChk = wx.CheckBox(self, wx.ID_ANY, name='duplicate',
+                           label='duplicate')
+        xtt = wx.ToolTip(u'重複する設計点を作成するか')
+        xChk.SetToolTip(xtt)
+        self.Bind(wx.EVT_CHECKBOX, self.OnChecks, xChk)
+        hsizer.Add(xChk, 1, flag=wx.GROW)
+        layout.Add(hsizer, pos=(row, 4), flag=wx.GROW|wx.ALL, border=self.bw)
 
         layout.AddGrowableCol(1)
         layout.AddGrowableCol(4)
@@ -176,6 +297,60 @@ class SurveyPage(wx.ScrolledWindow):
         """
         if not self.core: return False
         core = self.core
+
+        # survey mode
+        ctl0 = self.FindWindowByName('survey_simple')
+        ctl = self.FindWindowByName('survey_moea')
+        if not core.moeaMode:
+            if ctl0: ctl0.SetValue(True)
+            if ctl: ctl.SetValue(False)
+        else:
+            if ctl0: ctl0.SetValue(False)
+            if ctl: ctl.SetValue(True)
+
+        # set enable/disable according to survey mode
+        ctl = self.FindWindowByName('totalCaseNum')
+        if ctl: ctl.Enable(not core.moeaMode)
+        ctl = self.FindWindowByName('wdNum')
+        if ctl: ctl.Enable(not core.moeaMode)
+        ctl = self.FindWindowByName('casesPerDir')
+        if ctl: ctl.Enable(not core.moeaMode)
+        """
+        ctl = self.FindWindowByName('wdPattern')
+        if ctl: ctl.Enable(not core.moeaMode)
+        ctl = self.FindWindowByName('pfPattern')
+        if ctl: ctl.Enable(not core.moeaMode)
+        """
+
+        ctl = self.FindWindowByName('moeaVariableNum')
+        if ctl: ctl.Enable(core.moeaMode)
+        ctl = self.FindWindowByName('population')
+        if ctl: ctl.Enable(core.moeaMode)
+        ctl = self.FindWindowByName('maxGeneration')
+        if ctl: ctl.Enable(core.moeaMode)
+        ctl = self.FindWindowByName('evaluator')
+        if ctl: ctl.Enable(core.moeaMode)
+        ctl = self.FindWindowByName('evaluatorBrows')
+        if ctl: ctl.Enable(core.moeaMode)
+        ctl = self.FindWindowByName('optimizer')
+        if ctl: ctl.Enable(core.moeaMode)
+        ctl = self.FindWindowByName('optimizerBrows')
+        if ctl: ctl.Enable(core.moeaMode)
+        ctl = self.FindWindowByName('randSeed')
+        if ctl: ctl.Enable(core.moeaMode)
+        ctl = self.FindWindowByName('crossoverRate')
+        if ctl: ctl.Enable(core.moeaMode)
+        ctl = self.FindWindowByName('mutationRate')
+        if ctl: ctl.Enable(core.moeaMode)
+        ctl = self.FindWindowByName('etaCrossover')
+        if ctl: ctl.Enable(core.moeaMode)
+        ctl = self.FindWindowByName('etaMutation')
+        if ctl: ctl.Enable(core.moeaMode)
+        ctl = self.FindWindowByName('history')
+        if ctl: ctl.Enable(core.moeaMode)
+        ctl = self.FindWindowByName('duplicate')
+        if ctl: ctl.Enable(core.moeaMode)
+
 
         # total case number
         ctl = self.FindWindowByName('totalCaseNum')
@@ -207,48 +382,90 @@ class SurveyPage(wx.ScrolledWindow):
         if not ctl: return False
         ctl.SetValue(core.pfPattern)
 
-        # enable job suspender
-        ctl = self.FindWindowByName('enableSuspender')
-        if not ctl: return False
-        ctl.SetValue(core.enableSuspender)
 
-        # job suspender
-        ctl = self.FindWindowByName('jobSuspender')
+        # design variable number
+        ctl = self.FindWindowByName('moeaVariableNum')
         if not ctl: return False
-        ctl.SetValue(core.jobSuspender)
-        ctl.Enable(core.enableSuspender)
-        ctl = self.FindWindowByName('jobSuspenderBrows')
-        if not ctl: return False
-        ctl.Enable(core.enableSuspender)
+        vn = core.moea.getDesignVariableNum(core.pd)
+        if vn < 0: return False
+        ctl.SetValue(str(vn))
 
-        # generation loop
-        ctl = self.FindWindowByName('generationLoop')
+        # population
+        ctl = self.FindWindowByName('population')
         if not ctl: return False
-        ctl.SetValue(core.generationLoop)
+        ctl.SetValue(str(core.moea.population))
 
         # max generation
         ctl = self.FindWindowByName('maxGeneration')
         if not ctl: return False
-        ctl.SetValue(str(core.maxGeneration))
-        ctl.Enable(core.generationLoop)
+        ctl.SetValue(str(core.moea.maxGeneration))
 
-        # generator
-        ctl = self.FindWindowByName('generator')
+        # evaluator
+        ctl = self.FindWindowByName('evaluator')
         if not ctl: return False
-        ctl.SetValue(core.generator)
-        ctl.Enable(core.generationLoop)
-        ctl = self.FindWindowByName('generatorBrows')
-        if not ctl: return False
-        ctl.Enable(core.generationLoop)
+        ctl.SetValue(core.moea.evaluator)
 
-        # score file pattern
-        ctl = self.FindWindowByName('sfPattern')
+        # optimizer
+        ctl = self.FindWindowByName('optimizer')
         if not ctl: return False
-        ctl.SetValue(core.sfPattern)
+        ctl.SetValue(core.moea.optimizer)
+
+        # random seed
+        ctl = self.FindWindowByName('randSeed')
+        if not ctl: return False
+        ctl.SetValue(str(core.moea.randSeed))
+
+        # crossover rate
+        ctl = self.FindWindowByName('crossoverRate')
+        if not ctl: return False
+        ctl.SetValue(str(core.moea.crossoverRate))
+
+        # mutation rate
+        ctl = self.FindWindowByName('mutationRate')
+        if not ctl: return False
+        ctl.SetValue(str(core.moea.mutationRate))
+
+        # eta crossover
+        ctl = self.FindWindowByName('etaCrossover')
+        if not ctl: return False
+        ctl.SetValue(str(core.moea.etaCrossover))
+
+        # eta mutation
+        ctl = self.FindWindowByName('etaMutation')
+        if not ctl: return False
+        ctl.SetValue(str(core.moea.etaMutation))
+
+        # history
+        ctl = self.FindWindowByName('history')
+        if not ctl: return False
+        ctl.SetValue(core.moea.history)
+
+        # duplicate
+        ctl = self.FindWindowByName('duplicate')
+        if not ctl: return False
+        ctl.SetValue(core.moea.duplicate)
 
         return True
 
     # enent handlers
+    def OnSurveyType(self, evt):
+        """
+        select survey type欄のイベントハンドラ
+
+        [in] evt  イベント
+        """
+        if not self.core: return False
+        core = self.core
+        ctl1 = self.FindWindowByName('survey_simple')
+        ctl2 = self.FindWindowByName('survey_moea')
+        if not ctl1 and not ctl2: return
+        if ctl1.GetValue():
+            core.moeaMode = False
+        elif ctl2.GetValue():
+            core.moeaMode = True
+        self.Update()
+        return
+
     def OnWdNum(self, evt):
         """
         subcase directory number欄のイベントハンドラ
@@ -326,104 +543,30 @@ class SurveyPage(wx.ScrolledWindow):
         core.pfPattern = val
         return
 
-    def OnEnableSuspender(self, evt):
+    def OnPopulation(self, evt):
         """
-        enable suspenderチェックボックスのイベントハンドラ
+        population欄のイベントハンドラ
 
         [in] evt  イベント
         """
         if not self.core: return False
         core = self.core
-        ctl = self.FindWindowByName('enableSuspender')
-        ctl1= self.FindWindowByName('jobSuspender')
-        ctl2= self.FindWindowByName('jobSuspenderBrows')
-        if not ctl or not ctl1 or not ctl2: return
-        val = ctl.GetValue()
-        '''
-        if val:
-            dlg = wx.MessageDialog(self, 
-                                   u"本機能は実装されていません",
-                                   "pdi message", wx.OK|wx.ICON_INFORMATION)
-            dlg.ShowModal()
-            dlg.Destroy()
-            val = False
-            ctl.SetValue(val)
-        '''
-        ctl1.Enable(val)
-        ctl2.Enable(val)
-        core.enableSuspender = val
-        return
-
-    def OnJobSuspender(self, evt):
-        """
-        job suspender欄のイベントハンドラ
-
-        [in] evt  イベント
-        """
-        if not self.core: return False
-        core = self.core
-        ctl = self.FindWindowByName('jobSuspender')
+        ctl = self.FindWindowByName('population')
         if not ctl: return
-        val = ctl.GetValue()
-        core.jobSuspender = val
-        '''
-        if not os.path.exists(val):
-            dlg = wx.MessageDialog(self, 
-                                   u"指定されたパスは存在しません",
-                                   "pdi message", wx.OK|wx.ICON_INFORMATION)
-            dlg.ShowModal()
-            dlg.Destroy()
-        '''
-        return
-
-    def OnJobSuspenderBrows(self, evt):
-        """
-        job suspender browsボタンのイベントハンドラ
-
-        [in] evt  イベント
-        """
-        if not self.core: return False
-        core = self.core
-        ctl = self.FindWindowByName('jobSuspender')
-        fileDlg = wx.FileDialog(self, 'select a job suspender file',
-                                "", "", '(*)|*', wx.FD_OPEN)
-        if core.jobSuspender != '':
-            fileDlg.SetPath(core.jobSuspender)
-        if fileDlg.ShowModal() != wx.ID_OK: return
-        val = fileDlg.GetPath()
-        if len(val) < 1: return
-        ctl.SetValue(val)
-        core.jobSuspender = val
-        return
-
-    def OnGenerationLoop(self, evt):
-        """
-        generation loopチェックボックスのイベントハンドラ
-
-        [in] evt  イベント
-        """
-        if not self.core: return False
-        core = self.core
-        ctl = self.FindWindowByName('generationLoop')
-        ctl1= self.FindWindowByName('maxGeneration')
-        ctl2= self.FindWindowByName('generator')
-        ctl3= self.FindWindowByName('generatorBrows')
-        if not ctl or not ctl1 or not ctl2 or not ctl3: return
-        val = ctl.GetValue()
-        '''
-        if val:
-            dlg = wx.MessageDialog(self, 
-                                   u"本機能は実装されていません",
-                                   "pdi message", wx.OK|wx.ICON_INFORMATION)
-            dlg.ShowModal()
-            dlg.Destroy()
-            val = False
-            ctl.SetValue(val)
-        '''
-        ctl1.Enable(val)
-        ctl2.Enable(val)
-        ctl3.Enable(val)
-        core.generationLoop = val
+        try:
+            val = int(ctl.GetValue())
+            if val < 1:
+                raise Exception('invalid value ( < 1 )')
+            if val % 4 != 0:
+                dlg = wx.MessageDialog(self, 
+                                   u'populationは4の倍数である必要があります',
+                                   'pdi message', wx.OK|wx.ICON_INFORMATION)
+                dlg.ShowModal()
+                dlg.Destroy()
+                raise Exception('invalid value ( mod(4) != 0 )')
+            core.moea.population = val
+        except:
+            ctl.SetValue(str(core.moea.population))
         return
 
     def OnMaxGeneration(self, evt):
@@ -439,63 +582,193 @@ class SurveyPage(wx.ScrolledWindow):
         try:
             val = int(ctl.GetValue())
             if val < 1: raise Exception('invalid value')
-            core.maxGeneration = val
+            core.moea.maxGeneration = val
         except:
-            ctl.SetValue(str(core.maxGeneration))
+            ctl.SetValue(str(core.moea.maxGeneration))
         return
 
-    def OnGenerator(self, evt):
+    def OnEvaluator(self, evt):
         """
-        generator欄のイベントハンドラ
+        evaluator path欄のイベントハンドラ
 
         [in] evt  イベント
         """
         if not self.core: return False
         core = self.core
-        ctl = self.FindWindowByName('generator')
+        ctl = self.FindWindowByName('evaluator')
         if not ctl: return
         val = ctl.GetValue()
-        core.generator = val
-        '''
-        if not os.path.exists(val):
-            dlg = wx.MessageDialog(self, 
-                                   u"指定されたパスは存在しません",
-                                   "pdi message", wx.OK|wx.ICON_INFORMATION)
-            dlg.ShowModal()
-            dlg.Destroy()
-        '''
+        core.moea.evaluator = val
         return
 
-    def OnGeneratorBrows(self, evt):
+    def OnEvaluatorBrows(self, evt):
         """
-        generator browsボタンのイベントハンドラ
+        evaluator browsボタンのイベントハンドラ
 
         [in] evt  イベント
         """
         if not self.core: return False
         core = self.core
-        ctl = self.FindWindowByName('generator')
-        fileDlg = wx.FileDialog(self, 'select a generator file',
+        fileDlg = wx.FileDialog(self, 'select a evaluator program path',
                                 "", "", '(*)|*', wx.FD_OPEN)
-        if core.generator != '':
-            fileDlg.SetPath(core.generator)
+        if len(core.moea.evaluator) > 0:
+            fileDlg.SetPath(core.moea.evaluator)
+        elif core.exec_dir != '':
+            fileDlg.SetDirectory(core.exec_dir)
+        else:
+            fileDlg.SetDirectory(os.path.getcwd())
         if fileDlg.ShowModal() != wx.ID_OK: return
-        val = fileDlg.GetPath()
-        if len(val) < 1: return
-        ctl.SetValue(val)
-        core.generator = val
+        path = fileDlg.GetPath()
+        if len(path) < 1: return
+        core.moea.evaluator = path
+        self.Update()
         return
 
-    def OnSfPattern(self, evt):
+    def OnOptimizer(self, evt):
         """
-        score file pattern欄のイベントハンドラ
+        optimizer path欄のイベントハンドラ
 
         [in] evt  イベント
         """
         if not self.core: return False
         core = self.core
-        ctl = self.FindWindowByName('sfPattern')
+        ctl = self.FindWindowByName('optimizer')
         if not ctl: return
         val = ctl.GetValue()
-        core.sfPattern = val
+        core.moea.optimizer = val
+        return
+
+    def OnOptimizerBrows(self, evt):
+        """
+        optimizer browsボタンのイベントハンドラ
+
+        [in] evt  イベント
+        """
+        if not self.core: return False
+        core = self.core
+        fileDlg = wx.FileDialog(self, 'select a optimizer program path',
+                                "", "", '(*)|*', wx.FD_OPEN)
+        if len(core.moea.optimizer) > 0:
+            fileDlg.SetPath(core.moea.optimizer)
+        elif core.exec_dir != '':
+            fileDlg.SetDirectory(core.exec_dir)
+        else:
+            fileDlg.SetDirectory(os.path.getcwd())
+        if fileDlg.ShowModal() != wx.ID_OK: return
+        path = fileDlg.GetPath()
+        if len(path) < 1: return
+        core.moea.optimizer = path
+        self.Update()
+        return
+
+    def OnRandSeed(self, evt):
+        """
+        random seed欄のイベントハンドラ
+
+        [in] evt  イベント
+        """
+        if not self.core: return False
+        core = self.core
+        ctl = self.FindWindowByName('randSeed')
+        if not ctl: return
+        try:
+            val = float(ctl.GetValue())
+            if val > 1.0: raise Exception('invalid value')
+            elif val < 0.0: val = -1.0
+            core.moea.randSeed = val
+            self.Update()
+        except:
+            ctl.SetValue(str(core.moea.randSeed))
+        return
+
+    def OnCrossoverRate(self, evt):
+        """
+        crossover rate欄のイベントハンドラ
+
+        [in] evt  イベント
+        """
+        if not self.core: return False
+        core = self.core
+        ctl = self.FindWindowByName('crossoverRate')
+        if not ctl: return
+        try:
+            val = float(ctl.GetValue())
+            if val < 0.0 or val > 1.0: raise Exception('invalid value')
+            core.moea.crossoverRate = val
+            self.Update()
+        except:
+            ctl.SetValue(str(core.moea.crossoverRate))
+        return
+
+    def OnMutationRate(self, evt):
+        """
+        mutation rate欄のイベントハンドラ
+
+        [in] evt  イベント
+        """
+        if not self.core: return False
+        core = self.core
+        ctl = self.FindWindowByName('mutationRate')
+        if not ctl: return
+        try:
+            val = float(ctl.GetValue())
+            if val > 1.0: raise Exception('invalid value')
+            elif val < 0.0: val = -1.0
+            core.moea.mutationRate = val
+            self.Update()
+        except:
+            ctl.SetValue(str(core.moea.mutationRate))
+        return
+
+    def OnEtaCrossover(self, evt):
+        """
+        eta crossover欄のイベントハンドラ
+
+        [in] evt  イベント
+        """
+        if not self.core: return False
+        core = self.core
+        ctl = self.FindWindowByName('etaCrossover')
+        if not ctl: return
+        try:
+            val = int(ctl.GetValue())
+            if val < 5 or val > 40: raise Exception('invalid value')
+            core.moea.etaCrossover = val
+        except:
+            ctl.SetValue(str(core.moea.etaCrossover))
+        return
+
+    def OnEtaMutation(self, evt):
+        """
+        eta mutation欄のイベントハンドラ
+
+        [in] evt  イベント
+        """
+        if not self.core: return False
+        core = self.core
+        ctl = self.FindWindowByName('etaMutation')
+        if not ctl: return
+        try:
+            val = int(ctl.GetValue())
+            if val < 5 or val > 50: raise Exception('invalid value')
+            core.moea.etaMutation = val
+        except:
+            ctl.SetValue(str(core.moea.etaMutation))
+        return
+
+    def OnChecks(self, evt):
+        """
+        history, duplicateのイベントハンドラ
+        
+        [in] evt  イベント
+        """
+        if not self.core: return False
+        core = self.core
+        obj = evt.GetEventObject()
+        val = obj.GetValue()
+        oname = obj.GetName()
+        if oname == 'history':
+            core.moea.history = val
+        elif oname == 'duplicate':
+            core.moea.duplicate = val
         return

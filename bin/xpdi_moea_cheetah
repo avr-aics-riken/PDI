@@ -1,0 +1,24 @@
+#! /bin/bash
+# -*- coding: utf-8 -*-
+#
+# HPC/PF PDIサブシステム
+# moeaコマンド(cheetah)インターフェース
+#
+# copyright (c) 2015 IIS, Tokyo Univ., Japan
+#
+
+if [ "x${HPCPF_HOME}" == "x" ]; then
+  #echo FATAL: environment variable HPCPF_HOME not set.
+  #exit 1
+  export HPCPF_HOME=$HOME
+fi
+
+xpath=`dirname "$0"`
+dir0=`(cd "$xpath" && pwd)`
+PDI_DIR=`dirname "$dir0"`
+export PYTHONPATH=${PDI_DIR}/lib/python:$PYTHONPATH
+export PATH=${PDI_DIR}/bin:$PATH
+
+comm=`basename $0`
+exec python -B ${PDI_DIR}/lib/python/${comm}.py $*
+

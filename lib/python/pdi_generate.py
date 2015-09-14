@@ -52,6 +52,19 @@ def GetParamArray(sweepLst):
         continue # end of for(x)
     return sweepArr
 
+def GetBaseJobName(wdPattern):
+    wdname = wdPattern
+    wdname = wdname.replace('#D', '')
+    wdname = wdname.replace('#J', '')
+    while wdname.find('%P') != -1:
+        wdname = wdname.replace('%P', '')
+    while wdname.find('%Q') != -1:
+        wdname = wdname.replace('%Q', '')
+    xwd = wdname.split('_', 1)
+    job = xwd[0]
+    if job == '': job = 'job'
+    return job
+
 def GetWkDirName(wdPattern, dn=0, scn=0, sc=[], spl=[]):
     """
     サブケースワークディレクトリ名の展開
@@ -65,11 +78,17 @@ def GetWkDirName(wdPattern, dn=0, scn=0, sc=[], spl=[]):
     """
     wdname = wdPattern
     if spl == []:
+        import re
         wdname = wdname.replace('#D', '')
         wdname = wdname.replace('#J', '')
         wdname = wdname.replace('%P', '')
         wdname = wdname.replace('%Q', '')
-        wdname = wdname + '_0'
+        pat = re.compile('.+_[0-9]+')
+        res = pat.search(wdname)
+        if res and res.group() == wdname:
+            pass
+        else:
+            wdname = wdname + '_0'
         return wdname
     wdname = wdname.replace('#D', '_'+str(dn))
     wdname = wdname.replace('#J', '_'+str(scn))
@@ -123,38 +142,23 @@ def GetParamfileName(pfPattern, tmplBase, dn=0, scn=0, tn=0, cpdn=0):
     paramfile = paramfile.replace('#S', '_'+str(cpdn))
     return paramfile
 
-def CreateScriptFile(core, wdnl=[], path='paramsweep_wf', fmt='lua',
-                     interval=5):
+def CreateScriptFile(core, wdnl=[], path='pdi_generated.lua'):
     """
     ワークフロー用スクリプトファイル生成
 
     [in] core  PDIコアデータ
     [in] wdnl  ディレクトリ名リスト
     [in] path  スクリプトファイル名
-    [in] fmt   スクリプトファイル名拡張子
-    [in] interval   スクリプトファイル中のジョブ終了チェック間隔(sec)
     戻り値 -> 真偽値
     """
-    xpath = path
-    if len(fmt) > 1: xpath += '.' + fmt
-    if len(xpath) < 1:
-        log.error(LogMsg(210, 'create script file failed: invalid args'))
-        return False
-    if not core:
-        log.error(LogMsg(210, 'create script file failed: invalid args'))
-        return False
+    if core == None: return False
+    if core.batch_mode and not core.batch_out_scr:
+        return True # no need to create scriptfile
 
-    # get jobname
-    wdname = core.wdPattern
-    wdname = wdname.replace('#D', '')
-    wdname = wdname.replace('#J', '')
-    while wdname.find('%P') != -1:
-        wdname = wdname.replace('%P', '')
-    while wdname.find('%Q') != -1:
-        wdname = wdname.replace('%Q', '')
-    xwd = wdname.split('_', 1)
-    job = xwd[0]
-    if job == '': job = 'job'
+    xpath = path
+
+    # get job basename
+    job = GetBaseJobName(core.wdPattern)
 
     # get solver command
     solver_comm = core.solver_comm
@@ -182,6 +186,8 @@ def CreateScriptFile(core, wdnl=[], path='paramsweep_wf', fmt='lua',
         commStr += ' ' + comm_args
 
     dt = str(datetime.datetime.today())
+    ts2 = '  '
+    ts4 = '    '
     if wdnl == []:
         numSubCase = 1
     else:
@@ -189,68 +195,57 @@ def CreateScriptFile(core, wdnl=[], path='paramsweep_wf', fmt='lua',
 
     try:
         ofp = open(xpath, "w")
-        ofp.write('-- created by PDI: %s --\n' % str(dt))
+        ofp.write('-- CWF created by PDI: %s --\n' % str(dt))
+        ofp.write('--  need to be set LUA_PATH for hpcpf and dxjob.\n')
         ofp.write('\n')
-        ofp.write('-- listup jobs\n')
-        ofp.write('jobs = {}\n')
-        if wdnl == []:
-            ofp.write('jobs[1] = {path = "%s_0", job = "%s"}\n' % \
-                          (job, commStr))
-        else:
-            for case in range(numSubCase):
-                ofp.write('jobs[%d] = {path = "%s", job = "%s"}\n' % \
-                              (case+1, wdnl[case], commStr))
-                continue # end of for(case)
-        ofp.write('-- listup jobs end\n')
-        ofp.close()
-        os.chmod(xpath, 0744)
     except Exception, e:
         log.error(LogMsg(210, 'create %s failed.' % xpath))
         log.error(str(e))
         return False
 
-    # register to CIF via PJM
-    pjm_comm = ['pjm_set_file_in_case', '..', os.path.basename(os.getcwd()),
-                'script_file', path, xpath,]
-    try:
-        pass ## check_call(pjm_comm)
-    except Exception, e:
-        log.error(LogMsg(220, 'add %s to CIF failed: call PJM failed' % xpath))
-        log.error(str(e))
+    ofp.write('require("hpcpf")\n')
+    ofp.write('function EXEC_PARAMSWEEP(...)\n')
+    ofp.write(ts2 + 'local pathsep = getSeparator()\n')
+    ofp.write(ts2 + 'local dxjob = require("dxjob")\n')
+    ofp.write(ts2 + 'local ex = ...\n')
+    ofp.write(ts2 + 'local dj = dxjob.new(ex)\n')
+    ofp.write('\n')
 
-    # export generator/suspender path
-    cwd = os.getcwd() # cwd == exec_dir
-    if not core.generationLoop:
-        try:
-            os.remove('generator_prog')
-        except:
-            pass
+    # exec solver in LUA
+    if wdnl == []:
+        jobnm = job + '_0'
+        ofp.write(ts2 + 'local ' + jobnm + ' = {\n')
+        ofp.write(ts4 + 'name = \'' + jobnm + '\',\n')
+        ofp.write(ts4 + 'path = \'' + jobnm + '\',\n')
+        ofp.write(ts4 + 'job = \'' + commStr + '\',\n')
+        ofp.write(ts4 + 'core = ex.cores,\n')
+        ofp.write(ts4 + 'node = ex.nodes\n')
+        ofp.write(ts2 + '}\n')
+        ofp.write(ts2 + 'dj:AddJob(%s)\n' % jobnm)
+        ofp.write('\n')
     else:
-        try:
-            exf = open('generator_prog', 'w')
-            xgp = core.generator
-            if xgp.startswith(cwd): xgp = xgp[len(cwd)+1:]
-            exf.write(xgp)
-            exf.close()
-        except:
-            log.warn(LogMsg(0, 'export generator path to '
-                            '%s/generator_prog failed' % core.exec_dir))
+        for p in range(numSubCase):
+            jobnm = job + '_%d' % p
+            ofp.write(ts2 + 'local ' + jobnm + ' = {\n')
+            ofp.write(ts4 + 'name = \'' + jobnm + '\',\n')
+            ofp.write(ts4 + 'path = \'' + wdnl[p] + '\',\n')
+            ofp.write(ts4 + 'job = \'' + commStr + '\',\n')
+            ofp.write(ts4 + 'core = ex.cores,\n')
+            ofp.write(ts4 + 'node = ex.nodes\n')
+            ofp.write(ts2 + '}\n')
+            ofp.write(ts2 + 'dj:AddJob(%s)\n' % jobnm)
+            ofp.write('\n')
+            continue # end of for(p)
 
-    if not core.enableSuspender:
-        try:
-            os.remove('job_suspender_prog')
-        except:
-            pass
-    else:
-        try:
-            exf = open('job_suspender_prog', 'w')
-            xsp = core.jobSuspender
-            if xsp.startswith(cwd): xsp = xsp[len(cwd)+1:]
-            exf.write(xsp)
-            exf.close()
-        except:
-            log.warn(LogMsg(0, 'export job suspender path to '
-                            '%s/job_suspender_prog failed' % core.exec_dir))
+    ofp.write(ts4 + 'dj:GenerateBootSh()\n')
+    ofp.write(ts4 + 'dj:SendCaseDir()\n')
+    ofp.write(ts4 + 'dj:SubmitAndWait()\n')
+    ofp.write(ts4 + 'dj:GetCaseDir()\n')
+    ofp.write('\n')
+    ofp.write('end\n') # end of function EXEC_PARAMSWEEP(...)
+
+    # done
+    ofp.close()
     return True
 
 def AddParamsToCIF(core, fileId=None):
@@ -263,38 +258,6 @@ def AddParamsToCIF(core, fileId=None):
     """
     if not core:
         log.error(LogMsg(220, 'add param files to CIF failed: invalid args'))
-        return False
-
-    # get dir_base
-    wdname = core.wdPattern
-    wdname = wdname.replace('#D', '*')
-    wdname = wdname.replace('#J', '*')
-    wdname = wdname.replace('%P', '*')
-    wdname = wdname.replace('%Q', '*')
-    wdname = wdname.replace('**', '*')
-
-    # get param_file
-    pfname = core.pfPattern
-    pfname = pfname.replace('%T', '*')
-    pfname = pfname.replace('#D', '*')
-    pfname = pfname.replace('#J', '*')
-    pfname = pfname.replace('#T', '*')
-    pfname = pfname.replace('#S', '*')
-    pfname = pfname.replace('**', '*')
-
-    # call PJM API
-    comm = ['pjm_set_file_in_case', '..', os.path.basename(os.getcwd()),
-            'param_file', ]
-    if fileId != None:
-        comm.append(fileId)
-    else:
-        comm.append('gen%d' % core.curGeneration)
-    comm.append('%s/%s' % (wdname, pfname))
-    try:
-        pass ## check_call(comm)
-    except Exception, e:
-        log.error(LogMsg(220, 'add param files to CIF failed: call PJM failed'))
-        log.error(str(e))
         return False
     return True
     
@@ -318,7 +281,7 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
     if plcsv and plcsv != '':
         try:
             plf = open(plcsv, 'w')
-            plf.write('%d, %d\n' % (core.curGeneration, core.maxGeneration))
+            plf.write('%d, %d\n' % (0, core.moea.maxGeneration))
         except Exception, e:
             log.error(LogMsg(220, 'create %s failed.' % plcsv))
             raise
@@ -351,7 +314,7 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
         for tf in core.templ_pathes:
             tmplBase = GetTemplBase(os.path.basename(tf))
             paramfile = GetParamfileName(core.pfPattern, tmplBase)
-            ### print '  create paramfile='+paramfile
+            ### print '  create paramfile='+paramPath
             paramPath = os.path.join(wdname, paramfile)
             if not ConvTmpl(tf, paramPath, core.pd):
                 log.error(LogMsg(62, 'template conversion failed, '
@@ -359,8 +322,8 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
             continue # end of for(tf)
         # copy input_data/* into wdname/
         for idfn in in_dat_files:
-            srcname = os.path.join(os.path.join('input_data', idfn))
-            dstname = os.path.join(os.path.join(wdname, idfn))
+            srcname = os.path.join('input_data', idfn)
+            dstname = os.path.join(wdname, idfn)
             if os.path.isdir(srcname):
                 shutil.copytree(srcname, dstname)
             else:
@@ -378,11 +341,7 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
         # output param_list.csv
         if plf:
             plf.write('0\n')
-            if core.sfPattern == '':
-                scorefile = 'SCORE'
-            else:
-                scorefile = GetParamfileName(core.sfPattern, '')
-            plf.write('%s\n' % os.path.join(wdname, scorefile))
+            plf.write('%s\n' % wdname)
             plf.close()
         return
 
@@ -459,12 +418,7 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
 
             # output param_list.csv
             if plf:
-                if core.sfPattern == '':
-                    scorefile = 'SCORE'
-                else:
-                    scorefile = GetParamfileName(core.sfPattern, '',
-                                                 dn, scn, tn, cpdn)
-                plf.write(os.path.join(wdname, scorefile))
+                plf.write(wdname)
                 for p in sc:
                     plf.write(', %s' % str(p))
                 plf.write('\n')
