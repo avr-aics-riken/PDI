@@ -1,4 +1,4 @@
-PDI version 1.4.1 (201509)
+PDI version 1.4.2 (201509)
 
 HPC/PF PDIサブシステム
 

@@ -363,8 +363,7 @@ class MainFrame(wx.Frame):
                     self, u'ソルバ入力パラメータファイル生成に' +
                     u'失敗しました\n\n' + str(e), 'pdi message', wx.OK)
                 msgDlg.ShowModal()
-            finally:
-                if prgDlg: prgDlg.Destroy()
+            if prgDlg: prgDlg.Destroy()
         else:
             # prepare MOEA env
             try:
@@ -379,6 +378,7 @@ class MainFrame(wx.Frame):
                     self, u'MOEA環境の生成に失敗しました\n\n' + str(e),
                     'pdi message', wx.OK)
                 msgDlg.ShowModal()
+                if prgDlg: prgDlg.Destroy()
                 return
 
             # create cwf
@@ -389,7 +389,7 @@ class MainFrame(wx.Frame):
                     self, u'MOEA用CWFの生成に失敗しました\n\n' + str(e),
                     'pdi message', wx.OK)
                 msgDlg.ShowModal()
-                return
+            if prgDlg: prgDlg.Destroy()
 
         # done
         return

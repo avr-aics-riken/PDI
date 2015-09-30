@@ -41,7 +41,7 @@ HPC/PF PDIサブシステム
     $HPCPF_HOME/conf/PDI_log.conf  ログ設定ファイル
 """
 
-_version_ = '1.4.1 (201509)'
+_version_ = '1.4.2 (201509)'
 
 
 #----------------------------------------------------------------------
@@ -80,6 +80,16 @@ try:
     hpcpf_pref0 = os.path.join(hpcpf_conf_dir, 'PDI.conf')
 except:
     pass
+hpcpf_pref1 = ''
+try:
+    mypath = os.path.abspath(sys.argv[0]) # pdi.py
+    mydir = os.path.dirname(mypath) # python
+    mydir = os.path.dirname(mydir) # lib
+    mydir = os.path.dirname(mydir)
+    mydir = os.path.join(mydir, 'conf')
+    hpcpf_pref1 = os.path.join(mydir, 'PDI.conf')
+except:
+    pass
 
 cfg = None
 try:
@@ -88,7 +98,10 @@ except:
     try:
         cfg = json.loads(open(hpcpf_pref0, 'r').read())
     except:
-        pass
+        try:
+            cfg = json.loads(open(hpcpf_pref1, 'r').read())
+        except:
+            pass
 if cfg == None:
     cfg = json.loads("""{
       "solver_cfg": {
@@ -214,7 +227,7 @@ class Core:
         [in] out_pat  出力パターン
         戻り値 -> 真偽値
         """
-        ox = out_pat.split('/')
+        ox = out_pat.replace('\\', '/').split('/')
         if len(ox) == 2:
             if ox[1] == '':
                 log.error(LogMsg(101, 'invalid out_pattern specified: '

@@ -20,7 +20,13 @@ except:
     print '%s: import PDI module failed.' % sys.argv[0]
     sys.exit(-1)
 
-pdi_comm = 'pdi'
+mypath = os.path.abspath(sys.argv[0])
+mydir = os.path.dirname(mypath) # python
+mydir = os.path.dirname(mydir) # lib
+mydir = os.path.dirname(mydir)
+pdi_comm = os.path.join(mydir, 'bin', 'pdi')
+if sys.platform == 'win32' or sys.platform == 'win64':
+    pdi_comm += '.bat'
 try:
     pdi_comm = os.environ['PDI_COMMAND']
 except:
@@ -28,7 +34,6 @@ except:
 
 
 def GetDirList(base, dir='.'):
-<<<<<<< HEAD
     """
     ディレクトリのリスト(dir/base*)を返す
 
@@ -36,8 +41,6 @@ def GetDirList(base, dir='.'):
     [in] dir  ターゲットディレクトリ
     戻り値 -> ディレクトリのリスト
     """
-=======
->>>>>>> 3a372c2c1765fa92cf240a2479f8f728fedd7fb0
     arg = os.path.join(dir, base) + '*'
     return [os.path.basename(r) for r in glob.glob(arg)]
 
@@ -154,7 +157,6 @@ if __name__ == '__main__':
         vars_lst.append(var_arr)
         continue # end of for(l)
     ifp.close()
-<<<<<<< HEAD
     if population > len(vars_lst):
         print myname \
             + ': population in design variable file less than #of subcases'\
@@ -162,17 +164,12 @@ if __name__ == '__main__':
     elif population < len(vars_lst):
         print myname \
             + ': population in design variable file greater than #of subcases'
-=======
-    if population != len(vars_lst):
-        print '%s: population of design variable file mismatch to #of subcases'\
-            % myname
->>>>>>> 3a372c2c1765fa92cf240a2479f8f728fedd7fb0
         sys.exit(3)
 
     # create paramfile(s)
     for idx in range(population):
         scd = subcase_lst[idx]
-        comm = 'pdi -B -x %s -d %s' % (case_dir, desc_path)
+        comm = '%s -B -x %s -d %s' % (pdi_comm, case_dir, desc_path)
         # template file(s)
         for tf in tmpl_pathes:
             comm += ' -t %s' % tf

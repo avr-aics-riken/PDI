@@ -6,10 +6,14 @@ rem echo "%DRVNAME%%DIRNAME%"
 
 rem set PDI_LOG_FILENAME=%DRVNAME%%DIRNAME%\..\logs\pdi_%USERNAME%.log
 
-if exist "%DRVNAME%%DIRNAME%..¥lib¥python\dist¥xpdi_genparam.exe" (
-   "%DRVNAME%%DIRNAME%..\lib\python\dist¥xpdi_genparam.exe" %*
+if exist "%DRVNAME%%DIRNAME%..\lib\python\dist_%PROCESSOR_ARCHITECTURE%\xpdi_genparam.exe" (
+  "%DRVNAME%%DIRNAME%..\lib\python\dist_%PROCESSOR_ARCHITECTURE%\xpdi_genparam.exe" %*
 ) else (
-  python -B "%DRVNAME%%DIRNAME%..\lib\python\xpdi_genparam.py" %*
+  if exist "%DRVNAME%%DIRNAME%..\lib\python\dist\xpdi_genparam.exe" (
+    "%DRVNAME%%DIRNAME%..\lib\python\dist\xpdi_genparam.exe" %*
+  ) else (
+    python -B "%DRVNAME%%DIRNAME%..\lib\python\xpdi_genparam.py" %*
+  )
 )
 
 rem pause

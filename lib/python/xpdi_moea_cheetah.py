@@ -8,7 +8,13 @@ import os, sys
 import getopt
 import subprocess
 
-moea_comm = 'cheetah.sh'
+# setup cheetah path
+mypath = os.path.abspath(sys.argv[0])
+mydir = os.path.dirname(mypath) # python
+mydir = os.path.dirname(mydir) # lib
+moea_comm = os.path.join(mydir, 'cheetah', 'cheetah')
+if sys.platform == 'win32' or sys.platform == 'win64':
+    moea_comm += '.bat'
 try:
     moea_comm = os.environ['MOEA_COMMAND']
 except:
@@ -93,13 +99,13 @@ if __name__ == '__main__':
             max_gen = val
             continue
         if o == '-m':
-            moea_comm = val
+            moea_comm = p
             continue
         if o == '--cfg-moea':
-            moea_cfg = val
+            moea_cfg = p
             continue
         if o == '--cfg-mop':
-            mop_cfg = val
+            mop_cfg = p
             continue
         if o == '-s':
             try:

@@ -89,7 +89,10 @@ def GetAveForce(hist, tm_range):
     try:
         dat = np.loadtxt(hist, skiprows=2)
     except Exception, e:
-        print str(e)
+        print myname + ': load history file failed: ' + str(e)
+        return None
+    if True in np.isnan(dat):
+        print myname + ': load history file: %s contains NaN' % hist
         return None
 
     # get average force
@@ -97,11 +100,13 @@ def GetAveForce(hist, tm_range):
         wkd1 = dat[np.where(dat[:, 1] >= tm_range[0])]
     else:
         wkd1 = dat
-    if tm_range[1] != None:
+    if len(wkd1) > 0 and tm_range[1] != None:
         wkd2 = wkd1[np.where(wkd1[:, 1] <= tm_range[1])]
     else:
         wkd2 = wkd1
     if len(wkd2) < 1:
+        print myname + ': load history file: %s contains no data in (%s, %s)' \
+            % (hist, str(tm_range[0]), str(tm_range[1]))
         return None # no data exists
 
     ave_force = [0.0, 0.0]
@@ -123,7 +128,8 @@ def GetDirList(base, dir='.'):
 def usage():
     print 'usage: %s [-h|--help] [-x casedir] [-w wkd_base] [-m]\n' % myname \
         + '\t [-t tm_start] [-T tm_end] [-i interface_dir] [-p population]\n' \
-        + '\t [-O | -C]'
+        + '\t [-O | -C]\n' \
+        + '\t(tm_start, tm_end < 0.0 means unlimited)'
     return
 
 # main routine
@@ -131,7 +137,7 @@ if __name__ == '__main__':
     case_dir = '.'
     wkd_base = 'job_'
     history_fn = 'history_force_cyl_2.txt'
-    tm_range = [None, None]
+    tm_range = [5.0, 10.0]
     inter_dir = 'interface'
     population = -1
     calc_max = False
@@ -166,8 +172,9 @@ if __name__ == '__main__':
             except:
                 print '%s: invalid tm_start specified: %s, ignore' % (myname, p)
             if t < 0.0:
-                print '%s: invalid tm_start specified: %f, ignore' % (myname, t)
-            tm_range[0] = t
+                tm_range[0] = None
+            else:
+                tm_range[0] = t
             continue
         if o == '-T':
             try:
@@ -175,8 +182,9 @@ if __name__ == '__main__':
             except:
                 print '%s: invalid tm_end specified: %s' % (myname, p)
             if t < 0.0:
-                print '%s: invalid tm_end specified: %f' % (myname, t)
-            tm_range[1] = t
+                tm_range[1] = None
+            else:
+                tm_range[1] = t
             continue
         if o == '-i':
             inter_dir = p
