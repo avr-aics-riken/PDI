@@ -1,0 +1,42 @@
+/*
+ * PDI
+ * Parameter Design and Input Method for HPC/PF system.
+ *
+ * Copyright (c) 2011-2015 Institute of Industrial Science,
+ * The University of Tokyo. All rights reserved.
+ *
+ * Copyright (c) 2013-2015 Advanced Institute for Computational Science, RIKEN.
+ * All rights reserved.
+ *
+ */
+
+REVISION HISTORY
+================
+
+--------------------------
+2013/02
+	初版
+--------------------------
+2013/06
+	--no_allオプションの追加
+	<cond>ノードの比較演算子の変更
+--------------------------
+2014/03
+	templateファイル記述方式変更
+	対応ソルバの追加
+--------------------------
+2014/10
+	ワークフローのLua化に対応
+--------------------------
+2014/10
+	スナップショットファイル名を.pdi_paramsからsnap_params.pdiに変更
+--------------------------
+2015/08
+	JAXAの多目的進化計算(MOEA)に対応
+--------------------------
+2015/09
+	JAXAの多目的進化計算(MOEA)をWindows環境に対応
+	Windows環境用にpy2exeのsetup.pyを提供
+--------------------------
+2015/09
+	プリファレンスファイルが存在しない場合にデフォルト設定を使用
