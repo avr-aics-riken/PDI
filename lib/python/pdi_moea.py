@@ -48,6 +48,8 @@ class MOEA(object):
 
     def setup_comm_path(self):
         mypath = os.path.abspath(sys.argv[0])
+        if mypath.endswith('.exe'): # for py2exe
+            mypath = os.path.dirname(mypath)
         mydir = os.path.dirname(mypath) # python
         mydir = os.path.dirname(mydir) # lib
         mydir = os.path.dirname(mydir)

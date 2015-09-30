@@ -83,6 +83,8 @@ except:
 hpcpf_pref1 = ''
 try:
     mypath = os.path.abspath(sys.argv[0]) # pdi.py
+    if mypath.endswith('.exe'): # for py2exe
+        mypath = os.path.dirname(mypath)
     mydir = os.path.dirname(mypath) # python
     mydir = os.path.dirname(mydir) # lib
     mydir = os.path.dirname(mydir)

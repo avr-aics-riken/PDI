@@ -10,6 +10,8 @@ import subprocess
 
 # setup cheetah path
 mypath = os.path.abspath(sys.argv[0])
+if mypath.endswith('.exe'): # for py2exe
+    mypath = os.path.dirname(mypath)
 mydir = os.path.dirname(mypath) # python
 mydir = os.path.dirname(mydir) # lib
 moea_comm = os.path.join(mydir, 'cheetah', 'cheetah')
