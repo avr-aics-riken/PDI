@@ -195,7 +195,7 @@ def CreateScriptFile(core, wdnl=[], path='pdi_generated.lua'):
 
     try:
         ofp = open(xpath, "w")
-        ofp.write('-- CWF created by PDI: %s --\n' % str(dt))
+        ofp.write('-- Parame sweep workflow created by PDI: %s --\n' % str(dt))
         ofp.write('--  need to be set LUA_PATH for hpcpf and dxjob.\n')
         ofp.write('\n')
     except Exception, e:
@@ -237,10 +237,10 @@ def CreateScriptFile(core, wdnl=[], path='pdi_generated.lua'):
             ofp.write('\n')
             continue # end of for(p)
 
-    ofp.write(ts4 + 'dj:GenerateBootSh()\n')
-    ofp.write(ts4 + 'dj:SendCaseDir()\n')
-    ofp.write(ts4 + 'dj:SubmitAndWait()\n')
-    ofp.write(ts4 + 'dj:GetCaseDir()\n')
+    ofp.write(ts2 + 'dj:GenerateBootSh()\n')
+    ofp.write(ts2 + 'dj:SendCaseDir()\n')
+    ofp.write(ts2 + 'dj:SubmitAndWait()\n')
+    ofp.write(ts2 + 'dj:GetCaseDir()\n')
     ofp.write('\n')
     ofp.write('end\n') # end of function EXEC_PARAMSWEEP(...)
 
@@ -248,17 +248,53 @@ def CreateScriptFile(core, wdnl=[], path='pdi_generated.lua'):
     ofp.close()
     return True
 
-def AddParamsToCIF(core, fileId=None):
+
+CWF_LUA = """
+require('hpcpf')
+
+-- exec environment
+local ex = ...
+local caseDir = ex.caseDir
+print('Case dir = ' .. caseDir)
+
+-- pdi jobs
+require('pdi_generated')
+EXEC_PARAMSWEEP(ex)
+
+print('Case finished')
+return ex.outputFiles
+"""
+
+def CreateCWF(core, path='cwf.lua', force=False):
     """
-    ケース情報ファイルへのパラメータファイル群の登録
+    ケースワークフローファイルの生成
 
     [in] core  PDIコアデータ
-    [in] fileId  ファイルID(Noneの場合は世代番号を元に生成)
+    [in] path  ケースワークフローファイルのパス
+    [in] force  存在する場合上書きするか
     戻り値 -> 真偽値
     """
     if not core:
-        log.error(LogMsg(220, 'add param files to CIF failed: invalid args'))
+        log.error(LogMsg(220, 'create CWF failed: invalid args'))
         return False
+    if core.batch_mode and not core.batch_out_scr:
+        return True # no need to create scriptfile
+
+    if not force:
+        if os.path.exists(path):
+            return True
+
+    dt = str(datetime.datetime.today())
+    try:
+        cwf = open(path, 'w')
+        cwf.write('-- Case workflow created by PDI: %s --\n' % str(dt))
+        cwf.write('--  need to be set LUA_PATH for hpcpf and dxjob.\n')
+        cwf.write(CWF_LUA)
+        cwf.close()
+    except:
+        log.error(LogMsg(221, 'create CWF failed: %s' % path))
+        return False
+    
     return True
     
 
@@ -334,9 +370,6 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
                                     os.path.join(exec_dir, wdname))
         # create script file in Lua
         CreateScriptFile(core)
-
-        # add param files to CIF
-        AddParamsToCIF(core)
 
         # output param_list.csv
         if plf:
@@ -440,9 +473,6 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
 
     # create script file in Lua
     CreateScriptFile(core, wdnl)
-
-    # add param files to CIF
-    AddParamsToCIF(core)
 
     # done
     return

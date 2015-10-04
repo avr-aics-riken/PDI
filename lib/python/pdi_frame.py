@@ -14,6 +14,7 @@ try:
     from pdi_desc import *
     from pdi_paramPage import *
     from pdi_surveyPage import *
+    import pdi_generate
 except Exception, e:
     sys.exit(str(e))
 
@@ -351,7 +352,6 @@ class MainFrame(wx.Frame):
             # generate
             prgDlg = None
             try:
-                import pdi_generate
                 prgDlg = wx.ProgressDialog(
                     'generate solver parameter file(s)',
                     'creating subcase(s) and paramfile(s)',
@@ -381,15 +381,29 @@ class MainFrame(wx.Frame):
                 if prgDlg: prgDlg.Destroy()
                 return
 
-            # create cwf
+            # create workflow
             try:
-                core.moea.createCWF(core)
+                core.moea.CreateWorkFlow(core)
             except Exception, e:
                 msgDlg = wx.MessageDialog(
-                    self, u'MOEA用CWFの生成に失敗しました\n\n' + str(e),
-                    'pdi message', wx.OK)
+                    self, u'MOEA用ワークフローファイルの生成に失敗しました\n\n'
+                    + str(e), 'pdi message', wx.OK)
                 msgDlg.ShowModal()
             if prgDlg: prgDlg.Destroy()
+
+        # create CWF.lua
+        cwf_path = 'cwf.lua'
+        if os.path.exists(cwf_path):
+            msg = 'CWF has already existed\n  '
+            msg += cwf_path
+            msg += '\n\nDo you want to override ?\n'
+            dlg = wx.MessageDialog(self, msg, 'Save',
+                                   wx.OK|wx.CANCEL|wx.ICON_QUESTION)
+            result = dlg.ShowModal()
+            dlg.Destroy()
+            if result != wx.ID_OK:
+                return
+        pdi_generate.CreateCWF(core, force=True)
 
         # done
         return

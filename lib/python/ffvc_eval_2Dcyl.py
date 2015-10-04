@@ -10,6 +10,8 @@ inter_dir/pop_objs_eval.txtに出力する。
 import os,sys
 import getopt
 import glob
+import random
+
 
 myname = os.path.basename(sys.argv[0])
 
@@ -123,7 +125,17 @@ def GetDirList(base, dir='.'):
     戻り値 -> ディレクトリのリスト
     """
     arg = os.path.join(dir, base) + '*'
-    return [os.path.basename(r) for r in glob.glob(arg)]
+    lst = [os.path.basename(r) for r in glob.glob(arg)]
+    dic = {}
+    for l in lst:
+        ll = l.split('_')
+        try:
+            x = int(ll[-1])
+        except:
+            x = int(random.random() * 10000)
+        dic[x] = l
+        continue # end of for(l)
+    return dic.values()
 
 def usage():
     print 'usage: %s [-h|--help] [-x casedir] [-w wkd_base] [-m]\n' % myname \

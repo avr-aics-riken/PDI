@@ -10,6 +10,7 @@ import shutil
 import datetime
 import random
 import subprocess
+import glob
 try:
     import pdi_log
     log = pdi_log._log
@@ -268,7 +269,7 @@ class MOEA(object):
             if not keepGoing: return
         num_objs = 0
         try:
-            proc = subprocess.Popen([self.evaluator, '-O'],
+            proc = subprocess.Popen(self.evaluator.split() + ['-O'],
                                     stdout=subprocess.PIPE)
             res = proc.communicate()[0]
             num_objs = int(res)
@@ -277,7 +278,7 @@ class MOEA(object):
                             + 'invalid nObjs returned.')
         num_cons = 0
         try:
-            proc = subprocess.Popen([self.evaluator, '-C'],
+            proc = subprocess.Popen(self.evaluator.split() + ['-C'],
                                     stdout=subprocess.PIPE)
             res = proc.communicate()[0]
             num_cons = int(res)
@@ -385,6 +386,13 @@ class MOEA(object):
         except:
             in_dat_files = []
 
+        # delete old subcase directories
+        old_jd_lst = [os.path.basename(r) \
+            for r in glob.glob(os.path.join(core.exec_dir, job_base) + '*')]
+        if len(old_jd_lst):
+            for d in old_jd_lst:
+                shutil.rmtree(d, True)
+
         # create subcase directories [population]
         if core.moea.population < 1:
             raise Exception('invalid population: %d' % core.moea.population)
@@ -417,7 +425,7 @@ class MOEA(object):
         # done
         return
 
-    def createCWF(self, core, path='pdi_generated.lua'):
+    def CreateWorkFlow(self, core, path='pdi_generated.lua'):
         """
         MOEA用CWFの生成
 
@@ -474,22 +482,25 @@ class MOEA(object):
 
         # LUA generation loop
         ofp.write(ts2 + 'for i = 0, %d do\n' % core.moea.maxGeneration)
+        ofp.write(ts4 + 'print(string.format("---- LOOP %d START ----", i))\n')
 
         # exec moea via moea in LUA
         ofp.write(ts4 + 'local comm = "%s"\n' % core.moea.optimizer)
+        ofp.write(ts4 + 'comm = comm .. " -x " .. ex.caseDir\n')
         ofp.write(ts4 + 'comm = comm .. " -p %d"\n' % core.moea.population)
-        ofp.write(ts4 + 'comm = comm .. string.format(" -c %%d", i)\n')
+        ofp.write(ts4 + 'comm = comm .. string.format(" -c %d", i)\n')
         ofp.write(ts4 + 'comm = comm .. " -n %d"\n' % core.moea.maxGeneration)
         if not core.moea.history:
             ofp.write(ts4 + 'comm = comm .. " --nohistory"\n')
         if not core.moea.duplicate:
             ofp.write(ts4 + 'comm = comm .. " --noduplicate"\n')
+        ofp.write(ts4 + 'print("EXEC: " .. comm)\n')
         ofp.write(ts4 + 'local ret = os.execute(comm)\n')
         ofp.write('\n')
 
         # exec genparam for solver in LUA
         job_base = GetBaseJobName(core.wdPattern)
-        ofp.write(ts4 + 'comm = "%s"\n' % \
+        ofp.write(ts4 + 'comm = string.format("cd %%s; %s", ex.caseDir)\n' % \
                       os.path.join(self.comm_path, 'xpdi_genparam'))
         ofp.write(ts4 + 'comm = comm .. " -w %s"\n' % job_base)
         ofp.write(ts4 + 'comm = comm .. " -f %s"\n' % core.pfPattern)
@@ -499,6 +510,7 @@ class MOEA(object):
         designVars = self.getDesignVariableList(core.pd)
         for v in designVars:
             ofp.write(ts4 + 'comm = comm .. " -p %s"\n' % v.name)
+        ofp.write(ts4 + 'print("EXEC: " .. comm)\n')
         ofp.write(ts4 + 'ret = os.execute(comm)\n')
         ofp.write('\n')
 
@@ -526,11 +538,14 @@ class MOEA(object):
         # exec evaluator in LUA
         ofp.write(ts4 + 'if i ~= %d then\n' % core.moea.maxGeneration)
         ofp.write(ts6 + 'comm = "%s"\n' % core.moea.evaluator)
+        ofp.write(ts4 + 'comm = comm .. " -x " .. ex.caseDir\n')
         ofp.write(ts6 + 'comm = comm .. " -w %s"\n' % job_base)
         ofp.write(ts6 + 'comm = comm .. " -p %d"\n' % core.moea.population)
+        ofp.write(ts4 + 'print("EXEC: " .. comm)\n')
         ofp.write(ts6 + 'ret = os.execute(comm)\n')
         ofp.write(ts4 + 'end\n') # end of if
 
+        ofp.write(ts4 + 'print(string.format("---- LOOP %d END ----", i))\n')
         ofp.write(ts2 + 'end -- end of for(i)\n') # end of LUA for(i)
 
         ofp.write('\n')
