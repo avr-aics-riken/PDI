@@ -5,7 +5,7 @@ Parameter Design and Input Method for HPC/PF system.
 
 ----
 # Version
-  1.4.0 (201508)
+  1.4.3 (201510)
 
 # Requires
   python 2.x (not python 3.x !)
