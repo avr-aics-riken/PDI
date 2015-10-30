@@ -349,7 +349,7 @@ class MainFrame(wx.Frame):
                 msgDlg.ShowModal()
                 return
 
-            # generate
+            # create pdi_generated.lua
             prgDlg = None
             try:
                 prgDlg = wx.ProgressDialog(
@@ -364,6 +364,25 @@ class MainFrame(wx.Frame):
                     u'失敗しました\n\n' + str(e), 'pdi message', wx.OK)
                 msgDlg.ShowModal()
             if prgDlg: prgDlg.Destroy()
+
+            # create cwf.lua
+            cwf_path = 'cwf.lua'
+            if os.path.exists(cwf_path):
+                msg = 'CWF(cwf.lua) has already existed\n  '
+                msg += cwf_path
+                msg += '\n\nDo you want to override ?\n'
+                dlg = wx.MessageDialog(self, msg, 'Save',
+                                       wx.OK|wx.CANCEL|wx.ICON_QUESTION)
+                result = dlg.ShowModal()
+                dlg.Destroy()
+                if result != wx.ID_OK:
+                    return
+            if not pdi_generate.CreateCWF(core, force=True):
+                msgDlg = wx.MessageDialog(
+                    self, u'CWF(cwf.lua)の作成に失敗しました\n\n' + str(e),
+                    'pdi message', wx.OK)
+                msgDlg.ShowModal()
+                return
         else:
             # prepare MOEA env
             try:
@@ -381,29 +400,26 @@ class MainFrame(wx.Frame):
                 if prgDlg: prgDlg.Destroy()
                 return
 
-            # create workflow
+            # create pdi_generated.lua
             try:
-                core.moea.CreateWorkFlow(core)
+                core.moea.GenerateParams(core)
             except Exception, e:
                 msgDlg = wx.MessageDialog(
-                    self, u'MOEA用ワークフローファイルの生成に失敗しました\n\n'
-                    + str(e), 'pdi message', wx.OK)
+                    self, u'MOEA用ソルバ入力パラメータファイル生成に' +
+                    u'失敗しました\n\n' + str(e), 'pdi message', wx.OK)
                 msgDlg.ShowModal()
             if prgDlg: prgDlg.Destroy()
 
-        # create CWF.lua
-        cwf_path = 'cwf.lua'
-        if os.path.exists(cwf_path):
-            msg = 'CWF has already existed\n  '
-            msg += cwf_path
-            msg += '\n\nDo you want to override ?\n'
-            dlg = wx.MessageDialog(self, msg, 'Save',
-                                   wx.OK|wx.CANCEL|wx.ICON_QUESTION)
-            result = dlg.ShowModal()
-            dlg.Destroy()
-            if result != wx.ID_OK:
+            # create cwf.lua
+            cwf_path = 'cwf.lua'
+            try:
+                core.moea.CreateCWF(core, cwf_path)
+            except Exception, e:
+                msgDlg = wx.MessageDialog(
+                    self, u'CWF(cwf.lua)の作成に失敗しました\n\n' + str(e),
+                    'pdi message', wx.OK)
+                msgDlg.ShowModal()
                 return
-        pdi_generate.CreateCWF(core, force=True)
 
         # done
         return

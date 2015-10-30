@@ -252,6 +252,9 @@ class MOEA(object):
         """
         if not core or not core.pd:
             raise Exception('invalid PDI core')
+        if core.moea.population < 1:
+            raise Exception('invalid population: %d' % core.moea.population)
+
         (keepGoing, skip) = (True, False)
 
         # get design variables
@@ -394,8 +397,6 @@ class MOEA(object):
                 shutil.rmtree(d, True)
 
         # create subcase directories [population]
-        if core.moea.population < 1:
-            raise Exception('invalid population: %d' % core.moea.population)
         for i in range(core.moea.population):
             #wkdn = os.path.join(core.exec_dir, job_base + '_%d' % i)
             wkdn = job_base + '_%d' % i
@@ -425,22 +426,20 @@ class MOEA(object):
         # done
         return
 
-    def CreateWorkFlow(self, core, path='pdi_generated.lua'):
+    def GenerateParams(self, core, path='pdi_generated.lua'):
         """
-        MOEA用CWFの生成
+        MOEA用のジョブセット生成
 
         [in] core  PDI Coreデータ
-        [in] path  CWFファイル名
+        [in] path  スクリプトファイル名
         """
         if not core or not core.pd:
             raise Exception('invalid PDI core')
+        if core.batch_mode and not core.batch_out_scr:
+            return True # no need to create pdi_generated.lua
         if core.moea.population < 1:
             raise Exception('invalid population: %d' % core.moea.population)
 
-        dt = str(datetime.datetime.today())
-        ts2 = '  '
-        ts4 = '    '
-        ts6 = '      '
         solver_comm = core.solver_comm
         if solver_comm == [] or solver_comm[0] == '':
             comm = os.path.join('.', 'run.sh')
@@ -464,6 +463,53 @@ class MOEA(object):
         if comm_args != '':
             commStr += ' ' + comm_args
 
+        job_base = GetBaseJobName(core.wdPattern)
+        dt = str(datetime.datetime.today())
+        try:
+            ofp = open(path, 'w')
+            ofp.write('-- created by PDI: %s --\n' % str(dt))
+            ofp.write('\n')
+        except Exception, e:
+            raise e
+
+        # define solver jobs
+        ofp.write('function GET_JOBS(...)\n')
+        ofp.write('local ex = ...\n')
+        ofp.write('jobs = {}\n\n')
+        for p in range(core.moea.population):
+            jobnm = job_base + '_%d' % p
+            ofp.write('%s = {\n' % jobnm)
+            ofp.write('  name = \'' + jobnm + '\',\n')
+            ofp.write('  path = \'' + jobnm + '\',\n')
+            ofp.write('  job = \'' + commStr + '\',\n')
+            ofp.write('  core = ex.cores,\n')
+            ofp.write('  node = ex.nodes\n')
+            ofp.write('}\n')
+            ofp.write('jobs["%s"] = %s\n\n' % (jobnm, jobnm))
+            continue # end of for(p)
+
+        ofp.write('return jobs\n')
+        ofp.write('end\n')
+        
+        # done
+        ofp.close()
+        return
+
+    def CreateCWF(self, core, path='cwf.lua'):
+        """
+        MOEA用CWFの生成
+
+        [in] core  PDI Coreデータ
+        [in] path  CWFファイル名
+        """
+        if not core or not core.pd:
+            raise Exception('invalid PDI core')
+        if core.batch_mode and not core.batch_out_scr:
+            return True # no need to create cwf.lua
+        if core.moea.population < 1:
+            raise Exception('invalid population: %d' % core.moea.population)
+
+        dt = str(datetime.datetime.today())
         try:
             ofp = open(path, 'w')
             ofp.write('-- CWF created by PDI: %s --\n' % str(dt))
@@ -473,83 +519,77 @@ class MOEA(object):
             raise e
 
         ofp.write('require("hpcpf")\n')
-        ofp.write('function EXEC_PARAMSWEEP(...)\n')
-        ofp.write(ts2 + 'local pathsep = getSeparator()\n')
-        ofp.write(ts2 + 'local dxjob = require("dxjob")\n')
-        ofp.write(ts2 + 'local ex = ...\n')
-        ofp.write(ts2 + 'local dj = dxjob.new(ex)\n')
+        ofp.write('\n')
+        ofp.write('local ex = ...\n')
+        ofp.write('local dxjob = require("dxjob")\n')
+        ofp.write('local dj = dxjob.new(ex)\n')
+        ofp.write('\n')
+        ofp.write('require("pdi_generated")\n')
+        ofp.write('jobs = GET_JOBS(ex)\n')
         ofp.write('\n')
 
         # LUA generation loop
-        ofp.write(ts2 + 'for i = 0, %d do\n' % core.moea.maxGeneration)
-        ofp.write(ts4 + 'print(string.format("---- LOOP %d START ----", i))\n')
+        ofp.write('for i = 0, %d do\n' % core.moea.maxGeneration)
+        ofp.write('  print(string.format("---- LOOP %d START ----", i))\n')
 
-        # exec moea via moea in LUA
-        ofp.write(ts4 + 'local comm = "%s"\n' % core.moea.optimizer)
-        ofp.write(ts4 + 'comm = comm .. " -x " .. ex.caseDir\n')
-        ofp.write(ts4 + 'comm = comm .. " -p %d"\n' % core.moea.population)
-        ofp.write(ts4 + 'comm = comm .. string.format(" -c %d", i)\n')
-        ofp.write(ts4 + 'comm = comm .. " -n %d"\n' % core.moea.maxGeneration)
+        # exec moea via optimizer in LUA
+        ofp.write('  local comm = "%s"\n' % core.moea.optimizer)
+        ofp.write('  comm = comm .. " -x " .. ex.caseDir\n')
+        ofp.write('  comm = comm .. " -p %d"\n' % core.moea.population)
+        ofp.write('  comm = comm .. string.format(" -c %d", i)\n')
+        ofp.write('  comm = comm .. " -n %d"\n' % core.moea.maxGeneration)
         if not core.moea.history:
-            ofp.write(ts4 + 'comm = comm .. " --nohistory"\n')
+            ofp.write('  comm = comm .. " --nohistory"\n')
         if not core.moea.duplicate:
-            ofp.write(ts4 + 'comm = comm .. " --noduplicate"\n')
-        ofp.write(ts4 + 'print("EXEC: " .. comm)\n')
-        ofp.write(ts4 + 'local ret = os.execute(comm)\n')
-        ofp.write('\n')
+            ofp.write('  comm = comm .. " --noduplicate"\n')
+        ofp.write('  print("EXEC: " .. comm)\n')
+        ofp.write('  local ret = os.execute(comm)\n')
+        ofp.write('  \n')
 
         # exec genparam for solver in LUA
         job_base = GetBaseJobName(core.wdPattern)
-        ofp.write(ts4 + 'comm = string.format("cd %%s; %s", ex.caseDir)\n' % \
+        ofp.write('  comm = string.format("cd %%s; %s", ex.caseDir)\n' % \
                       os.path.join(self.comm_path, 'xpdi_genparam'))
-        ofp.write(ts4 + 'comm = comm .. " -w %s"\n' % job_base)
-        ofp.write(ts4 + 'comm = comm .. " -f %s"\n' % core.pfPattern)
-        ofp.write(ts4 + 'comm = comm .. " -d %s"\n' % core.desc_path)
+        ofp.write('  comm = comm .. " -w %s"\n' % job_base)
+        ofp.write('  comm = comm .. " -f %s"\n' % core.pfPattern)
+        ofp.write('  comm = comm .. " -d %s"\n' % core.desc_path)
         for t in core.templ_pathes:
-            ofp.write(ts4 + 'comm = comm .. " -t %s"\n' % t)
+            ofp.write('  comm = comm .. " -t %s"\n' % t)
         designVars = self.getDesignVariableList(core.pd)
         for v in designVars:
-            ofp.write(ts4 + 'comm = comm .. " -p %s"\n' % v.name)
-        ofp.write(ts4 + 'print("EXEC: " .. comm)\n')
-        ofp.write(ts4 + 'ret = os.execute(comm)\n')
-        ofp.write('\n')
+            ofp.write('  comm = comm .. " -p %s"\n' % v.name)
+        ofp.write('  print("EXEC: " .. comm)\n')
+        ofp.write('  ret = os.execute(comm)\n')
+        ofp.write('  \n')
 
         # exec solver in LUA
-        for p in range(core.moea.population):
-            jobnm = job_base + '_%d' % p
-            ofp.write(ts4 + 'local ' + jobnm + ' = {\n')
-            ofp.write(ts6 + 'name = \'' + jobnm + '\',\n')
-            ofp.write(ts6 + 'path = \'' + jobnm + '\',\n')
-            ofp.write(ts6 + 'job = \'' + commStr + '\',\n')
-            ofp.write(ts6 + 'core = ex.cores,\n')
-            ofp.write(ts6 + 'node = ex.nodes\n')
-            ofp.write(ts4 + '}\n')
-            ofp.write(ts4 + 'dj:AddJob(%s)\n' % jobnm)
-            ofp.write('\n')
-            continue # end of for(p)
-
-        ofp.write(ts4 + 'dj:GenerateBootSh()\n')
-        ofp.write(ts4 + 'dj:SendCaseDir()\n')
-        ofp.write(ts4 + 'dj:SubmitAndWait()\n')
-        ofp.write(ts4 + 'dj:GetCaseDir()\n')
-        ofp.write(ts4 + 'dj:Cancel() -- clear jobque\n')
-        ofp.write('\n')
+        ofp.write('  for k, j in pairs(jobs) do\n')
+        ofp.write('    dj:AddJob(j)\n')
+        ofp.write('  end\n')
+        ofp.write('  \n')
+        ofp.write('  dj:GenerateBootSh()\n')
+        ofp.write('  dj:SendCaseDir()\n')
+        ofp.write('  dj:SubmitAndWait()\n')
+        ofp.write('  dj:GetCaseDir()\n')
+        ofp.write('  dj:Cancel() -- clear jobque\n')
+        ofp.write('  \n')
 
         # exec evaluator in LUA
-        ofp.write(ts4 + 'if i ~= %d then\n' % core.moea.maxGeneration)
-        ofp.write(ts6 + 'comm = "%s"\n' % core.moea.evaluator)
-        ofp.write(ts4 + 'comm = comm .. " -x " .. ex.caseDir\n')
-        ofp.write(ts6 + 'comm = comm .. " -w %s"\n' % job_base)
-        ofp.write(ts6 + 'comm = comm .. " -p %d"\n' % core.moea.population)
-        ofp.write(ts4 + 'print("EXEC: " .. comm)\n')
-        ofp.write(ts6 + 'ret = os.execute(comm)\n')
-        ofp.write(ts4 + 'end\n') # end of if
+        ofp.write('  if i ~= %d then\n' % core.moea.maxGeneration)
+        ofp.write('    comm = "%s"\n' % core.moea.evaluator)
+        ofp.write('    comm = comm .. " -x " .. ex.caseDir\n')
+        ofp.write('    comm = comm .. " -w %s"\n' % job_base)
+        ofp.write('    comm = comm .. " -p %d"\n' % core.moea.population)
+        ofp.write('    print("EXEC: " .. comm)\n')
+        ofp.write('    ret = os.execute(comm)\n')
+        ofp.write('  end\n') # end of if
 
-        ofp.write(ts4 + 'print(string.format("---- LOOP %d END ----", i))\n')
-        ofp.write(ts2 + 'end -- end of for(i)\n') # end of LUA for(i)
+        ofp.write('  print(string.format("---- LOOP %d END ----", i))\n')
+        ofp.write('end -- end of for(i)\n') # end of LUA for(i)
 
         ofp.write('\n')
-        ofp.write('end\n') # end of function EXEC_PARAMSWEEP(...)
+        ofp.write('print(\'Case finished\')\n')
+        ofp.write('return ex.outputFiles\n')
 
         # done
         ofp.close()

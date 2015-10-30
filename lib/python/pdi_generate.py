@@ -142,9 +142,11 @@ def GetParamfileName(pfPattern, tmplBase, dn=0, scn=0, tn=0, cpdn=0):
     paramfile = paramfile.replace('#S', '_'+str(cpdn))
     return paramfile
 
+
 def CreateScriptFile(core, wdnl=[], path='pdi_generated.lua'):
     """
     ワークフロー用スクリプトファイル生成
+    called from GenerateParams()
 
     [in] core  PDIコアデータ
     [in] wdnl  ディレクトリ名リスト
@@ -153,9 +155,7 @@ def CreateScriptFile(core, wdnl=[], path='pdi_generated.lua'):
     """
     if core == None: return False
     if core.batch_mode and not core.batch_out_scr:
-        return True # no need to create scriptfile
-
-    xpath = path
+        return True # no need to create pdi_generated.lua
 
     # get job basename
     job = GetBaseJobName(core.wdPattern)
@@ -166,7 +166,6 @@ def CreateScriptFile(core, wdnl=[], path='pdi_generated.lua'):
         comm = 'run.sh'
     else:
         comm = solver_comm[0]
-
     comm_args = ''
     if len(solver_comm) > 1:
         for x in solver_comm[1:]:
@@ -180,76 +179,61 @@ def CreateScriptFile(core, wdnl=[], path='pdi_generated.lua'):
             if len(core.templ_pathes) > 0:
                 tmplBase = GetTemplBase(os.path.basename(core.templ_pathes[0]))
             comm_args = comm_args.replace('%T', tmplBase)
-
     commStr = comm
     if comm_args != '':
         commStr += ' ' + comm_args
 
-    dt = str(datetime.datetime.today())
-    ts2 = '  '
-    ts4 = '    '
     if wdnl == []:
         numSubCase = 1
     else:
         numSubCase = len(wdnl)
 
+    # open the file
+    dt = str(datetime.datetime.today())
     try:
-        ofp = open(xpath, "w")
-        ofp.write('-- Parame sweep workflow created by PDI: %s --\n' % str(dt))
-        ofp.write('--  need to be set LUA_PATH for hpcpf and dxjob.\n')
-        ofp.write('\n')
+        ofp = open(path, "w")
+        ofp.write('-- created by PDI: %s --\n\n' % str(dt))
     except Exception, e:
-        log.error(LogMsg(210, 'create %s failed.' % xpath))
+        log.error(LogMsg(210, 'create %s failed.' % path))
         log.error(str(e))
         return False
 
-    ofp.write('require("hpcpf")\n')
-    ofp.write('function EXEC_PARAMSWEEP(...)\n')
-    ofp.write(ts2 + 'local pathsep = getSeparator()\n')
-    ofp.write(ts2 + 'local dxjob = require("dxjob")\n')
-    ofp.write(ts2 + 'local ex = ...\n')
-    ofp.write(ts2 + 'local dj = dxjob.new(ex)\n')
-    ofp.write('\n')
-
-    # exec solver in LUA
+    # define solver jobs
+    ofp.write('function GET_JOBS(...)\n')
+    ofp.write('local ex = ...\n')
+    ofp.write('jobs = {}\n\n')
     if wdnl == []:
         jobnm = job + '_0'
-        ofp.write(ts2 + 'local ' + jobnm + ' = {\n')
-        ofp.write(ts4 + 'name = \'' + jobnm + '\',\n')
-        ofp.write(ts4 + 'path = \'' + jobnm + '\',\n')
-        ofp.write(ts4 + 'job = \'' + commStr + '\',\n')
-        ofp.write(ts4 + 'core = ex.cores,\n')
-        ofp.write(ts4 + 'node = ex.nodes\n')
-        ofp.write(ts2 + '}\n')
-        ofp.write(ts2 + 'dj:AddJob(%s)\n' % jobnm)
-        ofp.write('\n')
+        ofp.write('%s = {\n' % jobnm)
+        ofp.write('  name = \'' + jobnm + '\',\n')
+        ofp.write('  path = \'' + jobnm + '\',\n')
+        ofp.write('  job = \'' + commStr + '\',\n')
+        ofp.write('  core = ex.cores,\n')
+        ofp.write('  node = ex.nodes\n')
+        ofp.write('}\n')
+        ofp.write('jobs["%s"] = %s\n\n' % (jobnm, jobnm))
     else:
         for p in range(numSubCase):
             jobnm = job + '_%d' % p
-            ofp.write(ts2 + 'local ' + jobnm + ' = {\n')
-            ofp.write(ts4 + 'name = \'' + jobnm + '\',\n')
-            ofp.write(ts4 + 'path = \'' + wdnl[p] + '\',\n')
-            ofp.write(ts4 + 'job = \'' + commStr + '\',\n')
-            ofp.write(ts4 + 'core = ex.cores,\n')
-            ofp.write(ts4 + 'node = ex.nodes\n')
-            ofp.write(ts2 + '}\n')
-            ofp.write(ts2 + 'dj:AddJob(%s)\n' % jobnm)
-            ofp.write('\n')
+            ofp.write('%s = {\n' % jobnm)
+            ofp.write('  name = \'' + jobnm + '\',\n')
+            ofp.write('  path = \'' + wdnl[p] + '\',\n')
+            ofp.write('  job = \'' + commStr + '\',\n')
+            ofp.write('  core = ex.cores,\n')
+            ofp.write('  node = ex.nodes\n')
+            ofp.write('}\n')
+            ofp.write('jobs["%s"] = %s\n\n' % (jobnm, jobnm))
             continue # end of for(p)
 
-    ofp.write(ts2 + 'dj:GenerateBootSh()\n')
-    ofp.write(ts2 + 'dj:SendCaseDir()\n')
-    ofp.write(ts2 + 'dj:SubmitAndWait()\n')
-    ofp.write(ts2 + 'dj:GetCaseDir()\n')
-    ofp.write('\n')
-    ofp.write('end\n') # end of function EXEC_PARAMSWEEP(...)
+    ofp.write('return jobs\n')
+    ofp.write('end\n')
 
     # done
     ofp.close()
     return True
 
 
-CWF_LUA = """
+CWF_LUA_CODE = """
 require('hpcpf')
 
 -- exec environment
@@ -257,17 +241,32 @@ local ex = ...
 local caseDir = ex.caseDir
 print('Case dir = ' .. caseDir)
 
+-- create dxjob
+local dxjob = require('dxjob')
+local dj = dxjob.new(ex)
+
 -- pdi jobs
 require('pdi_generated')
-EXEC_PARAMSWEEP(ex)
+jobs = GET_JOBS(ex)
 
+for k, j in pairs(jobs) do
+  dj:AddJob(j)
+end
+
+-- exec jobs
+dj:GenerateBootSh()
+dj:SendCaseDir()
+dj:SubmitAndWait()
+dj:GetCaseDir()
+
+-- done
 print('Case finished')
 return ex.outputFiles
 """
 
 def CreateCWF(core, path='cwf.lua', force=False):
     """
-    ケースワークフローファイルの生成
+    ケースワークフローファイル(CWF)の生成
 
     [in] core  PDIコアデータ
     [in] path  ケースワークフローファイルのパス
@@ -278,32 +277,35 @@ def CreateCWF(core, path='cwf.lua', force=False):
         log.error(LogMsg(220, 'create CWF failed: invalid args'))
         return False
     if core.batch_mode and not core.batch_out_scr:
-        return True # no need to create scriptfile
+        return True # no need to create cwf.lua
 
     if not force:
         if os.path.exists(path):
             return True
 
+    # open and write codes
     dt = str(datetime.datetime.today())
     try:
         cwf = open(path, 'w')
         cwf.write('-- Case workflow created by PDI: %s --\n' % str(dt))
         cwf.write('--  need to be set LUA_PATH for hpcpf and dxjob.\n')
-        cwf.write(CWF_LUA)
+        cwf.write(CWF_LUA_CODE)
         cwf.close()
     except:
         log.error(LogMsg(221, 'create CWF failed: %s' % path))
         return False
-    
+
     return True
     
 
-def GenerateParams(core, progress=None, plcsv='param_list.csv'):
+def GenerateParams(core, progress=None, path='pdi_generated.lua',
+                   plcsv='param_list.csv'):
     """
-    ソルバー入力ファイル生成
+    ジョブセット生成
 
     [in] core  PDIコアデータ
     [in] progress  Progressダイアログ
+    [in] path  スクリプトファイル名
     [in] plcsv  パラメータリストCSVファイルパス
     """
     if not core or not core.pd:
@@ -311,7 +313,6 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
     caseNum = core.getTotalCaseNum()
     if caseNum < 1:
         raise Exception('total subcase number less than 1')
-    spl = GetSweepParamList(core)
 
     plf = None
     if plcsv and plcsv != '':
@@ -330,9 +331,9 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
 
     (keepGoing, skip) = (True, False)
 
+    spl = GetSweepParamList(core)
     if spl == []: # subcase number is 1, not sweep
         wdname = GetWkDirName(core.wdPattern)
-        ### print 'mkdir: dirname='+wdname
         if progress:
             (keepGoing, skip) = \
                 progress.Update(0, 'creating %s/...' % \
@@ -350,7 +351,6 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
         for tf in core.templ_pathes:
             tmplBase = GetTemplBase(os.path.basename(tf))
             paramfile = GetParamfileName(core.pfPattern, tmplBase)
-            ### print '  create paramfile='+paramPath
             paramPath = os.path.join(wdname, paramfile)
             if not ConvTmpl(tf, paramPath, core.pd):
                 log.error(LogMsg(62, 'template conversion failed, '
@@ -369,7 +369,7 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
                 progress.Update(1, 'creating %s/... done.' % \
                                     os.path.join(exec_dir, wdname))
         # create script file in Lua
-        CreateScriptFile(core)
+        CreateScriptFile(core, path=path)
 
         # output param_list.csv
         if plf:
@@ -404,7 +404,6 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
         # create directory
         wdname = GetWkDirName(core.wdPattern, dn, scn, sc, spl)
         wdnl.append(wdname)
-        ### print 'mkdir: dirname='+wdname
         if progress:
             (keepGoing, skip) = \
                 progress.Update(dn, 'creating %s/...' % \
@@ -428,7 +427,6 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
                 tmplBase = GetTemplBase(os.path.basename(tf))
                 paramfile = GetParamfileName(core.pfPattern, tmplBase,
                                              dn, scn, tn, cpdn)
-                ### print '  create paramfile='+paramfile
                 paramPath = os.path.join(wdname, paramfile)
                 xpl = {}
                 for p, v in zip(spl, sc):
@@ -472,7 +470,7 @@ def GenerateParams(core, progress=None, plcsv='param_list.csv'):
     if plf: plf.close()
 
     # create script file in Lua
-    CreateScriptFile(core, wdnl)
+    CreateScriptFile(core, wdnl, path)
 
     # done
     return

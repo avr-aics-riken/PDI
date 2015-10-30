@@ -353,6 +353,8 @@ class ParamPage(wx.ScrolledWindow):
             else:
                 ctl.SetLabel('search range [low/high/precision]')
 
+        # done
+        self.Refresh()
         return True
 
     # event handlers

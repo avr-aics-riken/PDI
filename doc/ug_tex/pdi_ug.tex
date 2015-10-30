@@ -62,7 +62,7 @@ PDI(パラメータ空間設計・入力支援)サブシステム\\
 
 操作説明書\\}
 \vspace*{2.5cm}
-\bf Version 1.4.3\\
+\bf Version 1.4.4\\
 \vspace*{1cm}
 \bf 2015年10月\\
 \vspace*{3.5cm}
@@ -92,6 +92,7 @@ PDI(パラメータ空間設計・入力支援)サブシステム\\
  & & Windows環境用にpy2exeのsetup.pyを提供\\ \hline
 2015/09 & 1.4.2 & プリファレンスファイルが存在しない場合にデフォルト設定を使用\\ \hline
 2015/10 & 1.4.3 & Xjob(hpcpfGUI)の改版に対応\\ \hline
+2015/10 & 1.4.4 & 生成するLuaスクリプトの構成を変更\\ \hline
 \end{tabular}
 
 \newpage
@@ -125,8 +126,8 @@ PDIのインストール方法について説明します。
 \hline
 アーキテクチャ & AMD64, IA32\\ \hline
 OS & Linux 2.6/3.x\\
-   & MacOS 10.9/10.10\\
-   & Windows 7/8\\ \hline
+   & MacOS 10.10/10.11\\
+   & Windows 7/8.1\\ \hline
 ソフトウエア & Python 2.x\\
              & wxPython 2.7以降/3.0\\ \hline
 \end{tabular}
@@ -247,6 +248,7 @@ pdi
 │   ├── pdi_ug.pdf
 │   └── pdi.txt
 ├── lib
+│   ├── cheetah
 │   └── python
 └── conf
      ├── PDI.conf
@@ -293,7 +295,7 @@ pdi {-b | -B} [-x case_directory] [-d param_desc] [-o output_pattern]
 指定された場合、GUIウインドウを表示せず、バッチモードで実行します。
 \item[{\tt -B}] {\ }\\
 バッチモード実行。
-{\tt -b}指定の場合と同じですが、ワークフロー実行用スクリプトファイル({\tt pdi\_generated.lua})の生成は行いません。
+{\tt -b}指定の場合と同じですが、ワークフロー実行用Luaスクリプトファイル({\tt cwf.lua および pdi\_generated.lua})の生成は行いません。
 \item[{\tt -x  case\_directory}] {\ }\\
 ケースディレクトリ指定。
 指定されると、PDIは起動時にcase\_directoryにカレントワーキングディレクトリを移動します。指定が省略された場合は、起動ディレクトリとなります。
@@ -302,7 +304,7 @@ pdi {-b | -B} [-x case_directory] [-d param_desc] [-o output_pattern]
 パラメータ記述XMLファイルの指定。
 パラメータ記述XMLファイルのパスを指定します。絶対パスか、カレントワーキングディレクトリからの相対パスで指定します。
 
-\item[{\tt $--$no\_all}] {\ }\\ 
+\item[{\tt --no\_all}] {\ }\\ 
 GUIモードにおいて「\_All\_」ページを作成しません。
 ただし、パラメータ記述ファイル中に{\tt ＜group＞}タグが一つも存在しない場合は
 作成します。
@@ -552,7 +554,7 @@ GUIモードで起動されたPDIでは、「File」メニューの「{\tt gener
 
 \textbf{(2) ソルバ入力用パラメータファイルの作成}
 
-作成したサブケースディレクトリの配下に、ソルバ入力用パラメータファイル名パターンを展開したファイル名で、ソルバ入力用パラメータファイルが作成されます。PDIは、指定されているソルバ入力パラメータテンプレートファイル中のマクロ記述をパラメータ値に置換することで、ソルバ入力用パラメータファイルを生成します。複数のンプレートファイルが指定されている場合、それらすべてに対応するソルバ入力用パラメータファイルが作成されます。
+作成したサブケースディレクトリの配下に、ソルバ入力用パラメータファイル名パターンを展開したファイル名で、ソルバ入力用パラメータファイルが作成されます。PDIは、指定されているソルバ入力パラメータテンプレートファイル中のマクロ記述をパラメータ値に置換することで、ソルバ入力用パラメータファイルを生成します。複数のテンプレートファイルが指定されている場合、それらすべてに対応するソルバ入力用パラメータファイルが作成されます。
 
 作成しようとしているソルバ入力用パラメータファイルが既に存在する場合は、そのファイルは上書きされます。\\
 
@@ -562,7 +564,33 @@ GUIモードで起動されたPDIでは、「File」メニューの「{\tt gener
 
 PDIは、ソルバ入力用パラメータファイルの生成時に、Luaスクリプトファイルとして、ケースディレクトリ配下に{\tt pdi\_generated.lua}というファイルを作成します。同名のファイルが既に存在する場合、そのファイルは上書きされます。
 
-{\tt pdi\_generated.lua}は、ケースワークフローファイル({\tt cwf.lua})から{\tt require}され、関数{\tt EXEC\_PARAMSWEEP(...)}が呼び出されることを前提として記述されています。\\
+{\tt pdi\_generated.lua}は、ケースワークフローファイル({\tt cwf.lua})から{\tt require}され、関数{\tt GET\_JOBS(...)}を呼び出し、戻り値としてサブケースジョブ群が格納されたテーブルを受け取ることを前提として記述されています。\\
+
+尚、PDIはケースディレクトリ配下に{\tt cwf.lua}が存在しない場合は、以下の内容の{\tt cwf.lua}ファイルを作成します。
+
+\begin{quote}
+\begin{verbatim}
+require('hpcpf')
+local ex = ...
+local caseDir = ex.caseDir
+print('Case dir = ' .. caseDir)
+local dxjob = require('dxjob')
+local dj = dxjob.new(ex)
+require('pdi_generated')
+jobs = GET_JOBS(ex)
+for k, j in pairs(jobs) do
+  dj:AddJob(j)
+end
+dj:GenerateBootSh()
+dj:SendCaseDir()
+dj:SubmitAndWait()
+dj:GetCaseDir()
+return ex.outputFiles
+\end{verbatim}
+\end{quote}
+
+{\tt cwf.lua}が存在している場合は、{\tt cwf.lua}を上書きするかどうかを尋ねるダイアログが表示されます。ただし、「{\tt -B}」オプションでバッチモードでPDIを実行した場合は、{\tt cwf.lua}も{\tt pdi\_generated.lua}も作成されません。\\
+
 
 \textbf{(4) パラメータリストファイルの作成}
 
@@ -721,9 +749,9 @@ MOEA計算において、重複する設計点を作成するかどうかを設�
 
 ソルバー実行スクリプトは、{\tt input\_data}ディレクトリ配下から、全てのサブケースディレクトリ配下にコピーされます。ファイル名はソルバー種別によって異なります。
 
-ワークフロー記述Luaファイル({\tt pdi\_generated.lua})は、ケースワークフローファイル({\tt cwf.lua})から{\tt require}され、関数{\tt EXEC\_PARAMSWEEP(...)}が呼び出されることを前提として記述されています。
+ワークフロー記述Luaファイル({\tt pdi\_generated.lua})は、同時に生成されるケースワークフローファイル({\tt cwf.lua})から{\tt require}され、関数{\tt GET\_JOBS(...)}を呼び出し、戻り値としてサブケースジョブ群が格納されたテーブルを受け取ることを前提として記述されています。
 
-尚、ケースワークフローファイルおよび{\tt input\_data}ディレクトリは、ケースディレクトリに事前に用意されている事が前提です。
+尚、{\tt input\_data}ディレクトリは、ケースディレクトリに事前に用意されている事が前提です。
 
 
 \subsection{MOEAの実行}
@@ -1631,6 +1659,9 @@ MOEA計算における個体数を1以上の4の倍数の整数で指定しま�
 
 0以外 \ 異常終了
 \end{description}
+ {\ }\\
+
+尚、PDIにはサンプルのevaluatorプログラムとして{\tt ffvc\_eval\_2Dcyl}が付属しています。このプログラムは、FFV-Cの2次元角柱周り流れの組込み問題の第2角柱が受ける外力を評価するPythonプログラムで、Pythonコードは{\tt pdi/lib/python/ffvc\_eval\_2Dcyl.py}です。
 
 
 \newpage
