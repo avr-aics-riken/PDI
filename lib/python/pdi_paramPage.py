@@ -337,6 +337,9 @@ class ParamPage(wx.ScrolledWindow):
                 ctlx.Enable(p.useExcept and not p.disable)
 
             continue # end of for(p)
+
+        # done
+        self.Refresh()
         return True
 
     # event handlers
