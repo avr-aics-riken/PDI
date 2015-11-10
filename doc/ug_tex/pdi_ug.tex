@@ -62,9 +62,9 @@ PDI(パラメータ空間設計・入力支援)サブシステム\\
 
 操作説明書\\}
 \vspace*{2.5cm}
-\bf Version 1.4.4\\
+\bf Version 1.4.5\\
 \vspace*{1cm}
-\bf 2015年10月\\
+\bf 2015年11月\\
 \vspace*{3.5cm}
 {\large\bf 東京大学 生産技術研究所\\}
 %\vspace*{1cm}
@@ -93,6 +93,7 @@ PDI(パラメータ空間設計・入力支援)サブシステム\\
 2015/09 & 1.4.2 & プリファレンスファイルが存在しない場合にデフォルト設定を使用\\ \hline
 2015/10 & 1.4.3 & Xjob(hpcpfGUI)の改版に対応\\ \hline
 2015/10 & 1.4.4 & 生成するLuaスクリプトの構成を変更\\ \hline
+2015/11 & 1.4.5 & choice型パラメータの部分的スイープ機能を追加\\ \hline
 \end{tabular}
 
 \newpage
@@ -125,7 +126,7 @@ PDIのインストール方法について説明します。
 \begin{tabular}{|l|l|}
 \hline
 アーキテクチャ & AMD64, IA32\\ \hline
-OS & Linux 2.6/3.x\\
+OS & Linux 2.7/3.x\\
    & MacOS 10.10/10.11\\
    & Windows 7/8.1\\ \hline
 ソフトウエア & Python 2.x\\
@@ -166,24 +167,7 @@ MacOS環境向けには、Pythonのインストーラパッケージが用意さ
 
 \textbf{(3) Windows}
 
-Windows環境向けには、Python 2.7.xのインストーラパッケージが用意されています。
-
-以下に示すURLより、PDIを動作させる環境にあったインストーラをダウンロードし、実行することでインストールをおこなってください。
-\begin{quote}
-{\tt http://www.python.org/download/}
-\end{quote}
-尚、同URLにはPython 3.xのインストーラパッケージも登録されていますが、PDIはPython
-3.xでの動作は保証していません。Python 2.xのインストーラパッケージを使用してください。
-
-インストーラ実行時に、「Customize Python 2.7.x」という画面が表示され、ここでインストールするPythonの構成を選択する事が出来ます。
-
-\begin{center}
-\includegraphics[width=250pt, bb=0 0 499 425]{figs/fig000.png}
-
-図1 Python Windowsインストーラ画面
-\end{center}
-
-ここで、デフォルトでは「Add python.exe to Path」という項目が「×」(インストールしない)になっているので、これを「Will be installed on local hard drive」に変更した上でインストールを進めてください。
+Windows環境向けには、PDIはpy2exe\footnote{\tt http://www.py2exe.org/}を使用してパッケージ化された実行環境が提供されるため、Pythonパッケージのインストールは不要です。
 {\ }\\
 
 
@@ -214,13 +198,8 @@ MacOS環境向けには、wxPythonのインストーラパッケージが用意�
 
 \textbf{(3) Windows}
 
-Windows環境向けには、wxPythonのインストーラパッケージが用意されています。
-以下に示すURLより、PDIを動作させる環境にあったインストーラをダウンロードし、実行することでインストールをおこなってください。
-\begin{quote}
-{\tt http://www.wxpython.org/download.php\#stable}
-\end{quote}
+Windows環境向けには、PDIはpy2exeを使用してパッケージ化された実行環境が提供されるため、wxPythonパッケージのインストールは不要です。
 {\ }\\
-
 
 
 \subsection{PDIのインストール}
@@ -367,9 +346,9 @@ directorynameおよびfilename中に「\#D」、「\#J」が含まれている�
 PDIをGUIモードで実行すると、PDIのメインウインドウが表示されます。
 
 \begin{center}
-\includegraphics[width=360pt, bb=0 0 982 512]{figs/fig001.png}
+\includegraphics[width=360pt, bb=0 0 980 508]{figs/fig001.png}
 
-図2 PDIメインウインドウ
+図1 PDIメインウインドウ
 \end{center}
 
 
@@ -409,12 +388,12 @@ PDIのパラメータ空間設計支援は、パラメータ定義ファイル�
 このラジオボタンがONの場合には、パラメータ値は直接指定します。typeがintまたはrealの場合は、空白で区切って複数の値を列挙指定することができます。
 
 \item[{\bf sweep range}] パラメータスイープ範囲\\
-このラジオボタンがONの場合には、パラメータ値は範囲と刻み幅で指定します。typeがboolの場合は、パラメータ値はTrueとFalseの両方でスイープします。typeがchoiceの場合は、全選択肢がパラメータスイープの対象になります。typeがstringのパラメータは、パラメータスイープの対象にはなりません。
+このラジオボタンがONの場合には、パラメータ値は範囲と刻み幅で指定します。typeがboolの場合は、パラメータ値はTrueとFalseの両方でスイープします。typeがchoiceの場合は、選択肢のインデックス番号(0起点)で範囲と刻み幅を指定します。typeがstringのパラメータは、パラメータスイープの対象にはなりません。
 
 \item[{\bf exceptional value(s)}] 除外値(範囲または列挙値)\\
 このチェックボックスがONの場合、パラメータスイープの除外値を設定することができます。rangeラジオボタンがONの場合は、テキストボックスに除外する範囲の最小値と最大値を「/」(スラッシュ)で区切って指定します。valuesラジオボタンがONの場合は、テキストボックスに除外する値を直接指定します。複数の値を除外する場合は、空白で区切って列挙指定することもできます。
 
-尚、除外値の設定を行うことができるのは、typeがintまたはrealのパラメータ項目のみです。
+尚、除外値の設定を行うことができるのは、typeがint、realまたはchoiceのパラメータ項目のみです。
 \end{description}
 
 \begin{description}
@@ -445,7 +424,7 @@ GUIモードで起動されたPDIの「Survey」タブを選択すると、下�
 \begin{center}
 \includegraphics[width=360pt, bb=0 0 984 511]{figs/fig002.png}
 
-図3 PDIのSurveyパネル
+図2 PDIのSurveyパネル
 \end{center}
 
 「Survey」タブ最上段のラジオボタンで「Simple param survey」が選択されている場合、「Survey」タブの左側が有効化されており、以下に示す項目を設定する事ができます。
@@ -489,7 +468,7 @@ PDIをGUIモードで起動した場合、「Edit」メニューの「{\tt set p
 \begin{center}
 \includegraphics[width=184pt, bb=0 0 327 296]{figs/fig003.png}
 
-図4 PDIのテンプレートファイル設定ダイアログ
+図3 PDIのテンプレートファイル設定ダイアログ
 \end{center}
 
 このダイアログウインドウには、既に登録済みのソルバ入力用パラメータテンプレートファイルがリスト表示されています。このダイアログは「{Close」ボタンをクリックすると閉じられます。
@@ -508,7 +487,7 @@ GUIモードで起動したPDIの「Edit」メニューから「{\tt select solv
 \begin{center}
 \includegraphics[width=176pt, bb=0 0 312 296]{figs/fig004.png}
 
-図5 PDIのソルバ種別選択ダイアログ
+図4 PDIのソルバ種別選択ダイアログ
 \end{center}
 
 ここには、PDIに予め登録されているソルバ種別の一覧がリスト表示され、リスト中の項目を選択状態にして「OK」ボタンをクリックすると、ソルバ種別の設定がおこなわれます。
@@ -528,7 +507,7 @@ FFB\_LES3X & run\_les3x.sh & PARMLES3X\tabularnewline
 \hline
 FFB\_LES3X\_MPI & run\_les3x\_mpi.sh & PARMLES3X\tabularnewline
 \hline
-FFV & run\_ffv.sh \%T & \%T \tabularnewline
+FFV-C & run\_ffv.sh \%T & \%T \tabularnewline
 \hline
 OpenFoam\_icoFoam & run\_openfoam.sh &  \tabularnewline
 \hline
@@ -648,7 +627,7 @@ MOEAの設定は「Survey」タブを選択し、最上段の「MOEA param surve
 \begin{center}
 \includegraphics[width=360pt, bb=0 0 984 520]{figs/fig005.png}
 
-図6 PDIのSurveyパネル(「MOEA param survey」選択時)
+図5 PDIのSurveyパネル(「MOEA param survey」選択時)
 \end{center}
 
 ここでは、以下に示す項目を設定します。
@@ -675,7 +654,7 @@ PDIにおけるMOEA param sweepでは、「レンジ指定」を選択し、範�
 \begin{center}
 \includegraphics[width=320pt, bb=0 0 856 429]{figs/fig006.png}
 
-図7 PDIのパラメータ設定パネル(「MOEA param survey」選択時)
+図6 PDIのパラメータ設定パネル(「MOEA param survey」選択時)
 \end{center}
 
 \item[population] {\ }\\
@@ -736,12 +715,12 @@ MOEA計算において、重複する設計点を作成するかどうかを設�
 [ケースディレクトリ]
   ├── (cwf.lua)           (ケースワークフローファイル)
   ├── (input_data)
-  │     └── (run.sh)     (ソルバー実行スクリプト)
+  │     └── (run.sh)      (ソルバー実行スクリプト、他)
   ├── cfg
-  │     ├── moea.cfg     (Cheetah用コンフィグレーションファイル)
-  │     └── mop.cfg      (目的関数定義ファイル)
-  ├── job_{0 〜 個体数-1} (サブケースディレクトリ)
-  │     └── run.sh       (ソルバー実行スクリプト)
+  │     ├── moea.cfg      (Cheetah用コンフィグレーションファイル)
+  │     └── mop.cfg       (目的関数定義ファイル)
+  ├── job_{0 〜 個体数-1}  (サブケースディレクトリ)
+  │     └── run.sh        (ソルバー実行スクリプト)
   ├── interface           (Cheetah作業用ディレクトリ)
   ├── moea_out            (Cheetah出力用ディレクトリ)
   └── pdi_generated.lua   (ワークフロー記述Luaファイル)

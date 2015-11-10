@@ -131,7 +131,7 @@ class ParamPage(wx.ScrolledWindow):
         hsizer.Add(xRadio)
         self.Bind(wx.EVT_RADIOBUTTON, self.OnUseValueRange, xRadio)
         if param.type == Param.Type_INT or param.type == Param.Type_REAL or \
-                param.type == Param.Type_STRING:
+           param.type == Param.Type_STRING:
             xTxt = wx.TextCtrl(self, wx.ID_ANY, name=param.name +':value',
                                style=wx.TE_PROCESS_ENTER)
             hsizer.Add(xTxt, 1, flag=wx.GROW)
@@ -159,7 +159,8 @@ class ParamPage(wx.ScrolledWindow):
             xRadio.SetToolTip(wx.ToolTip('use sweep/search range'))
             hsizer.Add(xRadio)
             self.Bind(wx.EVT_RADIOBUTTON, self.OnUseValueRange, xRadio)
-        if param.type == Param.Type_INT or param.type == Param.Type_REAL:
+        if param.type == Param.Type_INT or param.type == Param.Type_REAL or \
+           param.type == Param.Type_CHOICE:
             xTxt = wx.TextCtrl(self, wx.ID_ANY, name=param.name +':rangeStart',
                                style=wx.TE_PROCESS_ENTER)
             hsizer.Add(xTxt, flag=wx.GROW)
@@ -180,7 +181,8 @@ class ParamPage(wx.ScrolledWindow):
         layout.Add(hsizer, pos=(row, 4), flag=wx.GROW|wx.ALL, border=self.bw)
         # col5 except
         hsizer = wx.BoxSizer()
-        if param.type == Param.Type_INT or param.type == Param.Type_REAL:
+        if param.type == Param.Type_INT or param.type == Param.Type_REAL or \
+           param.type == Param.Type_CHOICE:
             xChk = wx.CheckBox(self, wx.ID_ANY, name=param.name + ':useExcept',
                                label=' ')
             xChk.SetToolTip(wx.ToolTip('enable exceptional'))
@@ -264,22 +266,24 @@ class ParamPage(wx.ScrolledWindow):
                         vals += str(v) + ' '
                     ctl.SetValue(vals)
 
-            if p.type == Param.Type_INT or p.type == Param.Type_REAL:
-                ctl = self.FindWindowByName(p.name +':min')
-                if not ctl: continue
-                if p.minmax[0] == None:
-                    ctl.SetValue('unlimited')
-                else:
-                    ctl.SetValue(str(p.minmax[0]))
-                ctl.Enable(not p.disable)
+            if p.type == Param.Type_INT or p.type == Param.Type_REAL or \
+               p.type == Param.Type_CHOICE:
+                if p.type != Param.Type_CHOICE:
+                    ctl = self.FindWindowByName(p.name +':min')
+                    if not ctl: continue
+                    if p.minmax[0] == None:
+                        ctl.SetValue('unlimited')
+                    else:
+                        ctl.SetValue(str(p.minmax[0]))
+                    ctl.Enable(not p.disable)
 
-                ctl = self.FindWindowByName(p.name +':max')
-                if not ctl: continue
-                if  p.minmax[1] == None:
-                    ctl.SetValue('unlimited')
-                else:
-                    ctl.SetValue(str(p.minmax[1]))
-                ctl.Enable(not p.disable)
+                    ctl = self.FindWindowByName(p.name +':max')
+                    if not ctl: continue
+                    if  p.minmax[1] == None:
+                        ctl.SetValue('unlimited')
+                    else:
+                        ctl.SetValue(str(p.minmax[1]))
+                    ctl.Enable(not p.disable)
 
                 ctl = self.FindWindowByName(p.name +':rangeStart')
                 if not ctl: continue
@@ -566,13 +570,12 @@ class ParamPage(wx.ScrolledWindow):
                 raise Exception('invalid value')
             if vstr == 'none' or vstr == 'None' or vstr == 'unlimited':
                 val = None
-            elif param.type == Param.Type_INT:
+            elif param.type == Param.Type_INT or \
+                 param.type == Param.Type_CHOICE:
                 val = int(vstr)
             elif param.type == Param.Type_REAL:
                 val = float(vstr)
             else:
-                raise Exception('invalid value')
-            if not param.isValidValue(val):
                 raise Exception('invalid value')
             if oname[1] == 'rangeStart':
                 if val == None:
@@ -677,7 +680,9 @@ class ParamPage(wx.ScrolledWindow):
         try:
             param = core.pd.getParam(oname[0])
             if not param: return
-            if param.type != Param.Type_INT and param.type != Param.Type_REAL:
+            if param.type != Param.Type_INT and \
+               param.type != Param.Type_REAL and \
+               param.type != Param.Type_CHOICE:
                 raise Exception('invalid type')
             val = obj.GetValue()
             if val == '':
@@ -686,7 +691,8 @@ class ParamPage(wx.ScrolledWindow):
                 param.excepts = []
                 vals = val.split()
                 arr = []
-                if param.type == Param.Type_INT:
+                if param.type == Param.Type_INT or \
+                   param.type == Param.Type_CHOICE:
                     for v in vals:
                         x = int(v)
                         if not x in arr and param.isValidValue(x):
@@ -706,14 +712,16 @@ class ParamPage(wx.ScrolledWindow):
                 if svals[0] == 'none' or svals[0] == 'None' or \
                         svals[0] == 'unlimited':
                     pass
-                elif param.type == Param.Type_INT:
+                elif param.type == Param.Type_INT or \
+                     param.type == Param.Type_CHOICE:
                     exceptRange[0] = int(svals[0])
                 elif param.type == Param.Type_REAL:
                     exceptRange[0] = float(svals[0])
                 if svals[1] == 'none' or svals[1] == 'None' or \
                         svals[1] == 'unlimited':
                     pass
-                elif param.type == Param.Type_INT:
+                elif param.type == Param.Type_INT or \
+                     param.type == Param.Type_CHOICE:
                     exceptRange[1] = int(svals[1])
                 elif param.type == Param.Type_REAL:
                     exceptRange[1] = float(svals[1])

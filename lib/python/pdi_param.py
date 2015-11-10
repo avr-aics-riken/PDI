@@ -168,7 +168,7 @@ class Param(object):
             if self.type == Param.Type_INT or self.type == Param.Type_REAL:
                 return self.valList[idx]
             elif self.type == Param.Type_CHOICE:
-                return self.citems[self.valList[0]]
+                return self.citems[self.valList[idx]]
             else:
                 return str(self.valList[0])
         except:
@@ -249,7 +249,8 @@ class Param(object):
         """
         if len(vsweep) < 3: return False
         try:
-            if self.type == Param.Type_INT:
+            if self.type == Param.Type_INT or \
+               self.type == Param.Type_CHOICE:
                 if vsweep[0] > vsweep[1]: return False
                 self.sweepRange[0] = int(vsweep[0])
                 self.sweepRange[1] = int(vsweep[1])
@@ -377,6 +378,15 @@ class Param(object):
         if self.type == Param.Type_CHOICE:
             if type(val) == type(0):
                 if val < 0 or val >= len(self.citems): return False
+                if self.useExcept:
+                    if self.useExceptList:
+                        for x in self.excepts:
+                            if val == x: return False
+                    elif self.exceptRange[0] != None and \
+                         self.exceptRange[1] != None:
+                        if val >= self.exceptRange[0] and \
+                           val <= self.exceptRange[1]:
+                            return False
             else:
                 if not val in self.citems: return False
             return True
@@ -428,10 +438,29 @@ class Param(object):
             return vl
         if self.type == Param.Type_CHOICE:
             if self.useRange:
-                return self.citems
+                if self.sweepRange[0] != None and self.sweepRange[1] != None \
+                        and self.sweepRange[2] != None:
+                    v = self.sweepRange[0]
+                    if self.isValidValue(v):
+                        vl.append(self.citems[v])
+                    while v < self.sweepRange[1]:
+                        v += self.sweepRange[2]
+                        if v > self.sweepRange[1]:
+                            break
+                        if self.isValidValue(v):
+                            vl.append(self.citems[v])
+                        continue # end of while(v)
+                    if self.sweepRange[1] - v > 0:
+                        if self.isValidValue(v):
+                            vl.append(self.citems[v])
+                else:
+                    return vl
             else:
-                vl = [self.citems[self.valList[0]],]
-                return vl
+                for v in self.valList:
+                    if self.isValidValue(v):
+                        vl.append(self.citems[v])
+            return vl
+
         return vl
 
     def calcCaseNum(self):
@@ -440,7 +469,8 @@ class Param(object):
 
         戻り値 -> パラメータケース数
         """
-        if self.type == Param.Type_INT or self.type == Param.Type_REAL:
+        if self.type == Param.Type_INT or self.type == Param.Type_REAL or \
+           self.type == Param.Type_CHOICE:
             c = 0
             if self.useRange:
                 if self.sweepRange[0] != None and self.sweepRange[1] != None \
@@ -475,13 +505,6 @@ class Param(object):
                 return 1
         if self.type == Param.Type_STRING:
             if self.valList == [] or self.valList[0] == '':
-                return 0
-            else:
-                return 1
-        if self.type == Param.Type_CHOICE:
-            if self.useRange:
-                return len(self.citems)
-            elif len(self.citems) < 1:
                 return 0
             else:
                 return 1
@@ -571,7 +594,8 @@ class Param(object):
                         continue
                     val = conv_text(cur.firstChild.data.strip())
                     try:
-                        if p.type == Param.Type_INT:
+                        if p.type == Param.Type_INT or \
+                           p.type == Param.Type_CHOICE:
                             vals = val.split()
                             p.valList = [0]*len(vals)
                             for i in range(len(vals)):
@@ -592,9 +616,6 @@ class Param(object):
                             continue
                         if p.type == Param.Type_STRING:
                             p.valList = [val]
-                            continue
-                        if p.type == Param.Type_CHOICE:
-                            p.valList = [int(val)]
                             continue
                     except Exception, e:
                         log.error(LogMsg(44, 'invalid <value> tag found'))
@@ -635,23 +656,28 @@ class Param(object):
                         p.useRange = False
                     continue
                 if cur.tagName == 'sweepRange':
-                    if p.type != Param.Type_INT and p.type != Param.Type_REAL:
+                    if p.type != Param.Type_INT and \
+                       p.type != Param.Type_REAL and \
+                       p.type != Param.Type_CHOICE:
                         continue
                     if cur.hasAttribute('min'):
                         val = cur.getAttribute('min')
-                        if p.type == Param.Type_INT:
+                        if p.type == Param.Type_INT or \
+                           p.type == Param.Type_CHOICE:
                             p.sweepRange[0] = int(val)
                         else:
                             p.sweepRange[0] = float(val)
                     if cur.hasAttribute('max'):
                         val = cur.getAttribute('max')
-                        if p.type == Param.Type_INT:
+                        if p.type == Param.Type_INT or \
+                           p.type == Param.Type_CHOICE:
                             p.sweepRange[1] = int(val)
                         else:
                             p.sweepRange[1] = float(val)
                     if cur.hasAttribute('delta'):
                         val = cur.getAttribute('delta')
-                        if p.type == Param.Type_INT:
+                        if p.type == Param.Type_INT or \
+                           p.type == Param.Type_CHOICE:
                             p.sweepRange[2] = int(val)
                         else:
                             p.sweepRange[2] = float(val)
@@ -672,7 +698,9 @@ class Param(object):
                             pass
                     continue
                 if cur.tagName == 'useExcept':
-                    if p.type != Param.Type_INT and p.type != Param.Type_REAL:
+                    if p.type != Param.Type_INT and \
+                       p.type != Param.Type_REAL and \
+                       p.type != Param.Type_CHOICE:
                         continue
                     if not cur.hasChildNodes():
                         continue
@@ -685,7 +713,9 @@ class Param(object):
                         p.useExcept = False
                     continue
                 if cur.tagName == 'except':
-                    if p.type != Param.Type_INT and p.type != Param.Type_REAL:
+                    if p.type != Param.Type_INT and \
+                       p.type != Param.Type_REAL and \
+                       p.type != Param.Type_CHOICE:
                         continue
                     self.useExceptList = True
                     if not cur.hasChildNodes():
@@ -694,7 +724,8 @@ class Param(object):
                         continue
                     val = conv_text(cur.firstChild.data.strip())
                     try:
-                        if p.type == Param.Type_INT:
+                        if p.type == Param.Type_INT or \
+                           p.type == Param.Type_CHOICE:
                             vals = val.split()
                             p.excepts = [0]*len(vals)
                             for i in range(len(vals)):
@@ -713,17 +744,21 @@ class Param(object):
                     continue
                 if cur.tagName == 'exceptRange':
                     self.useExceptList = False
-                    if p.type != Param.Type_INT and p.type != Param.Type_REAL:
+                    if p.type != Param.Type_INT and \
+                       p.type != Param.Type_REAL and \
+                       p.type != Param.Type_CHOICE:
                         continue
                     if cur.hasAttribute('min'):
                         val = cur.getAttribute('min')
-                        if p.type == Param.Type_INT:
+                        if p.type == Param.Type_INT or \
+                           p.type == Param.Type_CHOICE:
                             p.exceptRange[0] = int(val)
                         else:
                             p.exceptRange[0] = float(val)
                     if cur.hasAttribute('max'):
                         val = cur.getAttribute('max')
-                        if p.type == Param.Type_INT:
+                        if p.type == Param.Type_INT or \
+                           p.type == Param.Type_CHOICE:
                             p.exceptRange[1] = int(val)
                         else:
                             p.exceptRange[1] = float(val)
@@ -811,8 +846,7 @@ class Param(object):
                 ofp.write(ofs2 + '<item>%s</item>\n' % item)
 
         # valList
-        if self.type == Param.Type_BOOL or self.type == Param.Type_STRING \
-                or self.type == Param.Type_CHOICE:
+        if self.type == Param.Type_BOOL or self.type == Param.Type_STRING:
             if self.valList != []:
                 ofp.write(ofs2 + '<value>%s</value>\n' % str(self.valList[0]))
             else:
@@ -828,7 +862,8 @@ class Param(object):
             ofp.write(ofs2 + '<useRange>%s</useRange>\n' % str(self.useRange))
 
         # sweepRange
-        if self.type == Param.Type_INT or self.type == Param.Type_REAL:
+        if self.type == Param.Type_INT or self.type == Param.Type_REAL or \
+           self.type == Param.Type_CHOICE:
             if self.sweepRange[0] != None or self.sweepRange[1] != None or \
                     self.sweepRange[2] != None:
                 ofp.write(ofs2 + '<sweepRange')
@@ -845,12 +880,14 @@ class Param(object):
             ofp.write(ofs2 + '<arithPrec>%d</arithPrec>\n' % self.arithPrec)
 
         # useExcept
-        if self.type == Param.Type_INT or self.type == Param.Type_REAL:
+        if self.type == Param.Type_INT or self.type == Param.Type_REAL or \
+           self.type == Param.Type_CHOICE:
             ofp.write(ofs2 + '<useExcept>%s</useExcept>\n' % \
                           str(self.useExcept))
 
         # except
-        if self.type == Param.Type_INT or self.type == Param.Type_REAL:
+        if self.type == Param.Type_INT or self.type == Param.Type_REAL or \
+           self.type == Param.Type_CHOICE:
             if self.useExceptList and len(self.excepts) > 0:
                 ofp.write(ofs2 + '<except>\n')
                 for v in self.excepts:
@@ -909,25 +946,6 @@ def decompParamCL(pl, s):
     if param.type == Param.Type_STRING:
         param.valList = [ss,]
         return True
-    elif param.type == Param.Type_CHOICE:
-        try:
-            val = int(ss)
-            if val < 0 or val >= len(param.citems):
-                raise Exception()
-            param.valList = [val,]
-            return True
-        except:
-            if ss == 'ALL':
-                param.useRange = True
-            elif ss in param.citems:
-                for i in range(len(param.citems)):
-                    if ss == param.citems[i]:
-                        param.valList = [i,]
-                        param.useRange = False
-                        return True
-                    continue # end of for(i)
-                raise Exception('invalid param argument: '
-                                '%s not found in param %s items' % (ss, pname))
     elif param.type == Param.Type_BOOL:
         toks = ss.split(',')
         valList = []
@@ -950,31 +968,69 @@ def decompParamCL(pl, s):
             param.valList = [False,]
             param.useRange = False
         return True
+    elif param.type == Param.Type_CHOICE:
+        try:
+            val = int(ss)
+            if val < 0 or val >= len(param.citems):
+                raise Exception()
+            param.valList = [val,]
+            return True
+        except:
+            if ss == 'ALL':
+                param.useRange = True
+            elif ss in param.citems:
+                for i in range(len(param.citems)):
+                    if ss == param.citems[i]:
+                        param.valList = [i,]
+                        param.useRange = False
+                        return True
+                    continue # end of for(i)
+                raise Exception('invalid param argument: '
+                                '%s not found in param %s items' % (ss, pname))
     else:
         sweepRange = [None, None, None]
         toks = ss.split('/')
-        if len(toks) == 3:
-            if param.type == Param.Type_INT:
-                sweepRange[0] = int(toks[0])
-                sweepRange[1] = int(toks[1])
-                sweepRange[2] = int(toks[2])
-            else:
-                sweepRange[0] = float(toks[0])
-                sweepRange[1] = float(toks[1])
-                sweepRange[2] = float(toks[2])
-            param.useRange = True
-            param.sweepRange = sweepRange
-            return True
-        else:
-            valList = []
-            toks = ss.split(',')
-            for t in toks:
-                if param.type == Param.Type_INT:
-                    valList.append(int(t))
+        try:
+            if len(toks) == 3:
+                if param.type == Param.Type_INT or \
+                   param.type == Param.Type_CHOICE:
+                    sweepRange[0] = int(toks[0])
+                    sweepRange[1] = int(toks[1])
+                    sweepRange[2] = int(toks[2])
                 else:
-                    valList.append(float(t))
-                continue # end of for(t)
-            param.useRange = False
-            param.valList = valList
-            return True
+                    sweepRange[0] = float(toks[0])
+                    sweepRange[1] = float(toks[1])
+                    sweepRange[2] = float(toks[2])
+                param.useRange = True
+                param.sweepRange = sweepRange
+                return True
+            else:
+                valList = []
+                toks = ss.split(',')
+                for t in toks:
+                    if param.type == Param.Type_INT or \
+                       param.type == Param.Type_CHOICE:
+                        valList.append(int(t))
+                    else:
+                        valList.append(float(t))
+                    continue # end of for(t)
+                param.useRange = False
+                param.valList = valList
+                return True
+        except:
+            if param.type == Param.Type_CHOICE:
+                if ss == 'ALL':
+                    param.useRange = True
+                elif ss in param.citems:
+                    for i in range(len(param.citems)):
+                        if ss == param.citems[i]:
+                            param.valList = [i,]
+                            param.useRange = False
+                            return True
+                        continue # end of for(i)
+                raise Exception('invalid param argument: %s not found '
+                                'in param %s items' % (ss, pname))
+            else:
+                raise Exception('invalid param argument: %s: %s' % (pname, ss))
+
     return True

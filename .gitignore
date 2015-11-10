@@ -21,3 +21,10 @@
 #*.exe
 *.out
 #*.app
+
+# TeX files
+*.dvi
+*.aux
+*.toc
+*.log
+
