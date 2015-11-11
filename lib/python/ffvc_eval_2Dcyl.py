@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
+u"""
 ffvc_eval_2Dcyl.py
 FFVCの角柱周り流れ問題について、角柱2のForceの時間的最大値または平均値を得る。
 各サブケースディレクトリ(wkd_base*)配下のhistory_forceファイル(history)を読み、

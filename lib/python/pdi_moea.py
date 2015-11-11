@@ -272,7 +272,14 @@ class MOEA(object):
             if not keepGoing: return
         num_objs = 0
         try:
-            proc = subprocess.Popen(self.evaluator.split() + ['-O'],
+            evalPath = self.evaluator
+            if sys.platform == 'win32' or sys.platform == 'win64':
+                evalPath = evalPath.replace('/', '\\')
+                if evalPath.endswith('ffvc_eval_2Dcyl'):
+                    evalPath += '.bat'
+            else:
+                evalPath = evalPath.replace('\\', '/')
+            proc = subprocess.Popen(evalPath.split() + ['-O'],
                                     stdout=subprocess.PIPE)
             res = proc.communicate()[0]
             num_objs = int(res)
@@ -442,9 +449,11 @@ class MOEA(object):
 
         solver_comm = core.solver_comm
         if solver_comm == [] or solver_comm[0] == '':
-            comm = os.path.join('.', 'run.sh')
+            #comm = os.path.join('.', 'run.sh')
+            comm = './' + 'run.sh'
         else:
-            comm = os.path.join('.', solver_comm[0])
+            #comm = os.path.join('.', solver_comm[0])
+            comm = './' + solver_comm[0]
         comm_args = ''
         if len(solver_comm) > 1:
             for x in solver_comm[1:]:
@@ -533,7 +542,11 @@ class MOEA(object):
         ofp.write('  print(string.format("---- LOOP %d START ----", i))\n')
 
         # exec moea via optimizer in LUA
-        ofp.write('  local comm = "%s"\n' % core.moea.optimizer)
+        optimPath = core.moea.optimizer.replace('\\', '/')
+        if sys.platform == 'win32' or sys.platform == 'win64':
+            if optimPath.endswith('xpdi_moea_cheetah'):
+                optimPath += '.bat'
+        ofp.write('  local comm = "%s"\n' % optimPath)
         ofp.write('  comm = comm .. " -x " .. ex.caseDir\n')
         ofp.write('  comm = comm .. " -p %d"\n' % core.moea.population)
         ofp.write('  comm = comm .. string.format(" -c %d", i)\n')
@@ -548,8 +561,11 @@ class MOEA(object):
 
         # exec genparam for solver in LUA
         job_base = GetBaseJobName(core.wdPattern)
-        ofp.write('  comm = string.format("cd %%s; %s", ex.caseDir)\n' % \
-                      os.path.join(self.comm_path, 'xpdi_genparam'))
+        genpPath = os.path.join(self.comm_path, 'xpdi_genparam').replace('\\', '/')
+        if sys.platform == 'win32' or sys.platform == 'win64':
+            genpPath += '.bat'
+        ofp.write('  comm = "%s"\n' % genpPath)
+        ofp.write('  comm = comm .. " -x " .. ex.caseDir\n')
         ofp.write('  comm = comm .. " -w %s"\n' % job_base)
         ofp.write('  comm = comm .. " -f %s"\n' % core.pfPattern)
         ofp.write('  comm = comm .. " -d %s"\n' % core.desc_path)
@@ -575,8 +591,12 @@ class MOEA(object):
         ofp.write('  \n')
 
         # exec evaluator in LUA
+        evalPath = core.moea.evaluator.replace('\\', '/')
+        if sys.platform == 'win32' or sys.platform == 'win64':
+            if evalPath.endswith('ffvc_eval_2Dcyl'):
+                evalPath += '.bat'
         ofp.write('  if i ~= %d then\n' % core.moea.maxGeneration)
-        ofp.write('    comm = "%s"\n' % core.moea.evaluator)
+        ofp.write('    comm = "%s"\n' % evalPath)
         ofp.write('    comm = comm .. " -x " .. ex.caseDir\n')
         ofp.write('    comm = comm .. " -w %s"\n' % job_base)
         ofp.write('    comm = comm .. " -p %d"\n' % core.moea.population)

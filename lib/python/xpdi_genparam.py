@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
+u"""
 xpdi_genparam.py
 MOEA計算実行時にサブケース毎の入力パラメータファイルを生成する。
 inter_dir/pop_vars_eval.txtとparam_tmplおよびparam_descから
@@ -122,10 +122,11 @@ if __name__ == '__main__':
         sys.exit(1)
 
     # load paramdesc file and check params
+    descPath = os.path.join(case_dir, desc_path)
     try:
-        pd = ParamDesc(desc_path)
+        pd = ParamDesc(descPath)
     except Exception, e:
-        print '%s: descfile load failed: %s' % (sys.argv[0], desc_path)
+        print '%s: descfile load failed: %s' % (sys.argv[0], descPath)
         sys.exit(2)
     for pn in param_args:
         param = pd.getParam(pn) 

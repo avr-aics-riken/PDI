@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
+u"""
 xpdi_moea_cheetah.py
 MOEAモジュールとしてcheetahを実行するインターフェース。
 """
