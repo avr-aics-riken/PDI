@@ -272,14 +272,14 @@ class MOEA(object):
             if not keepGoing: return
         num_objs = 0
         try:
-            evalPath = self.evaluator
+            evalPathLst = self.evaluator.split()
             if sys.platform == 'win32' or sys.platform == 'win64':
-                evalPath = evalPath.replace('/', '\\')
-                if evalPath.endswith('ffvc_eval_2Dcyl'):
-                    evalPath += '.bat'
+                evalPathLst[0] = evalPathLst[0].replace('/', '\\')
+                if evalPathLst[0].endswith('ffvc_eval_2Dcyl'):
+                    evalPathLst[0] += '.bat'
             else:
-                evalPath = evalPath.replace('\\', '/')
-            proc = subprocess.Popen(evalPath.split() + ['-O'],
+                evalPathLst[0] = evalPath.replace('\\', '/')
+            proc = subprocess.Popen(evalPathLst[0:1] + ['-O'],
                                     stdout=subprocess.PIPE)
             res = proc.communicate()[0]
             num_objs = int(res)
@@ -288,7 +288,7 @@ class MOEA(object):
                             + 'invalid nObjs returned.')
         num_cons = 0
         try:
-            proc = subprocess.Popen(self.evaluator.split() + ['-C'],
+            proc = subprocess.Popen(evalPathLst[0:1] + ['-C'],
                                     stdout=subprocess.PIPE)
             res = proc.communicate()[0]
             num_cons = int(res)
@@ -542,11 +542,11 @@ class MOEA(object):
         ofp.write('  print(string.format("---- LOOP %d START ----", i))\n')
 
         # exec moea via optimizer in LUA
-        optimPath = core.moea.optimizer.replace('\\', '/')
+        optimPathLst = core.moea.optimizer.replace('\\', '/').split()
         if sys.platform == 'win32' or sys.platform == 'win64':
-            if optimPath.endswith('xpdi_moea_cheetah'):
-                optimPath += '.bat'
-        ofp.write('  local comm = "%s"\n' % optimPath)
+            if optimPathLst[0].endswith('xpdi_moea_cheetah'):
+                optimPathLst[0] += '.bat'
+        ofp.write('  local comm = "%s"\n' % ' '.join(optimPathLst))
         ofp.write('  comm = comm .. " -x " .. ex.caseDir\n')
         ofp.write('  comm = comm .. " -p %d"\n' % core.moea.population)
         ofp.write('  comm = comm .. string.format(" -c %d", i)\n')
@@ -591,12 +591,12 @@ class MOEA(object):
         ofp.write('  \n')
 
         # exec evaluator in LUA
-        evalPath = core.moea.evaluator.replace('\\', '/')
+        evalPathLst = core.moea.evaluator.replace('\\', '/').split()
         if sys.platform == 'win32' or sys.platform == 'win64':
-            if evalPath.endswith('ffvc_eval_2Dcyl'):
-                evalPath += '.bat'
+            if evalPathLst[0].endswith('ffvc_eval_2Dcyl'):
+                evalPathLst[0] += '.bat'
         ofp.write('  if i ~= %d then\n' % core.moea.maxGeneration)
-        ofp.write('    comm = "%s"\n' % evalPath)
+        ofp.write('    comm = "%s"\n' % ' '.join(evalPathLst))
         ofp.write('    comm = comm .. " -x " .. ex.caseDir\n')
         ofp.write('    comm = comm .. " -w %s"\n' % job_base)
         ofp.write('    comm = comm .. " -p %d"\n' % core.moea.population)
