@@ -278,7 +278,7 @@ class MOEA(object):
                 if evalPathLst[0].endswith('ffvc_eval_2Dcyl'):
                     evalPathLst[0] += '.bat'
             else:
-                evalPathLst[0] = evalPath.replace('\\', '/')
+                evalPathLst[0] = evalPathLst[0].replace('\\', '/')
             proc = subprocess.Popen(evalPathLst[0:1] + ['-O'],
                                     stdout=subprocess.PIPE)
             res = proc.communicate()[0]

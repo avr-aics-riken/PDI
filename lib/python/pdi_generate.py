@@ -298,30 +298,19 @@ def CreateCWF(core, path='cwf.lua', force=False):
     return True
     
 
-def GenerateParams(core, progress=None, path='pdi_generated.lua',
-                   plcsv='param_list.csv'):
+def GenerateParams(core, progress=None, path='pdi_generated.lua'):
     """
     ジョブセット生成
 
     [in] core  PDIコアデータ
     [in] progress  Progressダイアログ
     [in] path  スクリプトファイル名
-    [in] plcsv  パラメータリストCSVファイルパス
     """
     if not core or not core.pd:
         raise Exception('invalid PDI core')
     caseNum = core.getTotalCaseNum()
     if caseNum < 1:
         raise Exception('total subcase number less than 1')
-
-    plf = None
-    if plcsv and plcsv != '':
-        try:
-            plf = open(plcsv, 'w')
-            plf.write('%d, %d\n' % (0, core.moea.maxGeneration))
-        except Exception, e:
-            log.error(LogMsg(220, 'create %s failed.' % plcsv))
-            raise
 
     exec_dir = os.path.basename(core.exec_dir)
     try:
@@ -370,12 +359,6 @@ def GenerateParams(core, progress=None, path='pdi_generated.lua',
                                     os.path.join(exec_dir, wdname))
         # create script file in Lua
         CreateScriptFile(core, path=path)
-
-        # output param_list.csv
-        if plf:
-            plf.write('0\n')
-            plf.write('%s\n' % wdname)
-            plf.close()
         return
 
     sweepLst = []
@@ -387,12 +370,6 @@ def GenerateParams(core, progress=None, path='pdi_generated.lua',
     sweepArr = GetParamArray(sweepLst)
     if sweepArr == [[]]:
         raise Exception(u'パラメータスイープ組み合わせ配列の生成に失敗しました')
-
-    if plf:
-        plf.write('%d' % len(spl))
-        for p in spl:
-            plf.write(', %s' % p.name)
-        plf.write('\n')
 
     # subcase directory loop
     wdnl = []
@@ -447,13 +424,6 @@ def GenerateParams(core, progress=None, path='pdi_generated.lua',
                 else:
                     shutil.copy2(srcname, dstname)
 
-            # output param_list.csv
-            if plf:
-                plf.write(wdname)
-                for p in sc:
-                    plf.write(', %s' % str(p))
-                plf.write('\n')
-
             scn += 1
             if scn >= len(sweepArr):
                 break
@@ -466,8 +436,6 @@ def GenerateParams(core, progress=None, path='pdi_generated.lua',
                                     os.path.join(exec_dir, wdname))
             if not keepGoing: break
         continue # end of while(scn)
-
-    if plf: plf.close()
 
     # create script file in Lua
     CreateScriptFile(core, wdnl, path)
