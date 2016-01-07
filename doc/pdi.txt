@@ -1,9 +1,9 @@
-PDI version 1.4.5 (201511)
+PDI version 1.4.6 (201601)
 
 HPC/PF PDIサブシステム
 
   コマンドライン
-   pdi [-h|--help] [-v] [--no_all] [-b|-B] [-x case_dir]
+   pdi [-h|--help] [-v] [--no_all] [--no_cwf] [-b|-B] [-x case_dir]
        [-d descfile] [-t templfile [-t templfile ...]] [-o out_pattern]
        [-p param_name:param_value [-p param_name:param_value ...]]
 
@@ -15,6 +15,8 @@ HPC/PF PDIサブシステム
       GUIモードにおいて「_All_」ページを作成しない。
       ただし、パラメータ記述ファイル中に<group>タグが一つも存在しない場合は
       作成する。
+    --no_cwf
+      パラメータ設定ファイル生成時にケースワークフロー(cwf.lua)を生成しない
     -b
       バッチモードで動作
     -B

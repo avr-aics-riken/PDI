@@ -4,7 +4,7 @@ u"""
 HPC/PF PDIサブシステム
 
   コマンドライン
-   pdi [-h|--help] [-v] [--no_all] [-b|-B] [-x case_dir]
+   pdi [-h|--help] [-v] [--no_all] [--no_cwf] [-b|-B] [-x case_dir]
        [-d descfile] [-t templfile [-t templfile ...]] [-o out_pattern]
        [-p param_name:param_value [-p param_name:param_value ...]]
 
@@ -16,6 +16,8 @@ HPC/PF PDIサブシステム
       GUIモードにおいて「_All_」ページを作成しない。
       ただし、パラメータ記述ファイル中に<group>タグが一つも存在しない場合は
       作成する。
+    --no_cwf
+      パラメータ設定ファイル生成時にケースワークフロー(cwf.lua)を生成しない
     -b
       バッチモードで動作
     -B
@@ -41,7 +43,7 @@ HPC/PF PDIサブシステム
     $HPCPF_HOME/conf/PDI_log.conf  ログ設定ファイル
 """
 
-_version_ = '1.4.5 (201511)'
+_version_ = '1.4.6 (201601)'
 
 
 #----------------------------------------------------------------------
@@ -167,6 +169,7 @@ class Core:
         self.batch_mode = False
         self.batch_out_scr = True
         self.no_all = False
+        self.no_cwf = False
         self.exec_dir = '.'
         self.desc_path = ''
         self.templ_pathes = []
@@ -633,7 +636,8 @@ if __name__ == '__main__':
     out_pat = None
     try:
         opts, args = getopt.getopt(sys.argv[1:], 'hvbBx:d:t:o:p:',
-                                   ['help', 'no_all', 'no-all'])
+                                   ['help', 'no_all', 'no-all',
+                                    'no_cwf', 'no-cwf'])
     except getopt.GetoptError:
         usage()
         sys.exit(2)
@@ -656,6 +660,9 @@ if __name__ == '__main__':
             core.batch_out_scr = False
         if o in ['--no_all', '--no-all']:
             core.no_all = True
+            continue
+        if o in ['--no_cwf', '--no-cwf']:
+            core.no_cwf = True
             continue
         if o == '-x':
             if not os.path.exists(p):

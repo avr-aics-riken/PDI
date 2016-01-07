@@ -276,6 +276,8 @@ def CreateCWF(core, path='cwf.lua', force=False):
     if not core:
         log.error(LogMsg(220, 'create CWF failed: invalid args'))
         return False
+    if core.no_cwf:
+        return True # no need to create cwf.lua
     if core.batch_mode and not core.batch_out_scr:
         return True # no need to create cwf.lua
 

@@ -62,9 +62,9 @@ PDI(パラメータ空間設計・入力支援)サブシステム\\
 
 操作説明書\\}
 \vspace*{2.5cm}
-\bf Version 1.4.5\\
+\bf Version 1.4.6\\
 \vspace*{1cm}
-\bf 2015年11月\\
+\bf 2016年1月\\
 \vspace*{3.5cm}
 {\large\bf 東京大学 生産技術研究所\\}
 %\vspace*{1cm}
@@ -95,6 +95,7 @@ PDI(パラメータ空間設計・入力支援)サブシステム\\
 2015/10 & 1.4.4 & 生成するLuaスクリプトの構成を変更\\ \hline
 2015/11 & 1.4.5 & choice型パラメータの部分的スイープ機能を追加\\
   &  & param\_list.csvファイルに関する記述を削除\\ \hline
+2016/01 & 1.4.6 & 「{\tt $--$no\_cwf}」オプションの追加\\ \hline
 \end{tabular}
 
 \newpage
@@ -257,7 +258,7 @@ PDIを起動する際の、コマンドライン指定の形式を以下に示�
 \item[GUIモード] {\ }
 \begin{verbatim}
 pdi  [-x case_directory] [-d param_desc] [-o output_pattern]
-     [-t template_file -t template_file ...] [--no_all]
+     [-t template_file -t template_file ...] [--no_all] [--no_cwf]
      [-p param_name:param_value  -p param_name:param_value ...]
 \end{verbatim}
 
@@ -288,6 +289,9 @@ pdi {-b | -B} [-x case_directory] [-d param_desc] [-o output_pattern]
 GUIモードにおいて「\_All\_」ページを作成しません。
 ただし、パラメータ記述ファイル中に{\tt ＜group＞}タグが一つも存在しない場合は
 作成します。
+
+\item[{\tt --no\_cwf}] {\ }\\ 
+パラメータ設定ファイル生成時にケースワークフローファイル(cwf.lua)を生成しません。
 
 \item[{\tt -t  template\_file}] {\ }\\
 ソルバ入力パラメータテンプレートファイルの指定。
@@ -546,7 +550,7 @@ PDIは、ソルバ入力用パラメータファイルの生成時に、Luaス�
 
 {\tt pdi\_generated.lua}は、ケースワークフローファイル({\tt cwf.lua})から{\tt require}され、関数{\tt GET\_JOBS(...)}を呼び出し、戻り値としてサブケースジョブ群が格納されたテーブルを受け取ることを前提として記述されています。\\
 
-尚、PDIはケースディレクトリ配下に{\tt cwf.lua}が存在しない場合は、以下の内容の{\tt cwf.lua}ファイルを作成します。
+尚、PDIはケースディレクトリ配下にケースワークフローとして、以下の内容の{\tt cwf.lua}ファイルを作成します。
 
 \begin{quote}
 \begin{verbatim}
@@ -569,7 +573,7 @@ return ex.outputFiles
 \end{verbatim}
 \end{quote}
 
-{\tt cwf.lua}が存在している場合は、{\tt cwf.lua}を上書きするかどうかを尋ねるダイアログが表示されます。ただし、「{\tt -B}」オプションでバッチモードでPDIを実行した場合は、{\tt cwf.lua}も{\tt pdi\_generated.lua}も作成されません。\\
+{\tt cwf.lua}が存在している場合は、{\tt cwf.lua}を上書きするかどうかを尋ねるダイアログが表示されます。ただし、「{\tt --no\_cwf}」オプションをつけて起動した場合は、{\tt cwf.lua}は作成されません。また、「{\tt -B}」オプションでバッチモードでPDIを実行した場合は、{\tt cwf.lua}も{\tt pdi\_generated.lua}も作成されません。\\
 
 
 \subsection{パラメータ空間設定情報の保存}
@@ -707,13 +711,13 @@ MOEA計算において、重複する設計点を作成するかどうかを設�
 
 \begin{verbatim}
 [ケースディレクトリ]
-  ├── (cwf.lua)           (ケースワークフローファイル)
   ├── (input_data)
   │     └── (run.sh)      (ソルバー実行スクリプト、他)
+  ├── cwf.lua             (ケースワークフローファイル)
   ├── cfg
   │     ├── moea.cfg      (Cheetah用コンフィグレーションファイル)
   │     └── mop.cfg       (目的関数定義ファイル)
-  ├── job_{0 〜 個体数-1}  (サブケースディレクトリ)
+  ├── job_{0〜個体数-1}    (サブケースディレクトリ)
   │     └── run.sh        (ソルバー実行スクリプト)
   ├── interface           (Cheetah作業用ディレクトリ)
   ├── moea_out            (Cheetah出力用ディレクトリ)
@@ -723,6 +727,8 @@ MOEA計算において、重複する設計点を作成するかどうかを設�
 ソルバー実行スクリプトは、{\tt input\_data}ディレクトリ配下から、全てのサブケースディレクトリ配下にコピーされます。ファイル名はソルバー種別によって異なります。
 
 ワークフロー記述Luaファイル({\tt pdi\_generated.lua})は、同時に生成されるケースワークフローファイル({\tt cwf.lua})から{\tt require}され、関数{\tt GET\_JOBS(...)}を呼び出し、戻り値としてサブケースジョブ群が格納されたテーブルを受け取ることを前提として記述されています。
+
+PDI起動時に「{\tt --no\_cwf}」オプションを指定した場合でも、MOEA実行環境の生成時には{\tt cwf.lua}は作成されます。
 
 尚、{\tt input\_data}ディレクトリは、ケースディレクトリに事前に用意されている事が前提です。
 

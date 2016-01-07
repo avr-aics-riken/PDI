@@ -4,7 +4,7 @@
 # HPC/PF PDIサブシステム
 # pdiコマンドインターフェース
 #
-# copyright (c) 2011-2013 IIS, Tokyo Univ., Japan
+# copyright (c) 2011-2015 IIS, Tokyo Univ., Japan
 #
 
 if [ "x${HPCPF_HOME}" == "x" ]; then
